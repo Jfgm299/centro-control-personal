@@ -8,7 +8,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Centro Control",
     description= 'prueba',
-    version='0.0.1'
+    version='1.0.0'
 )
 
 # CORS
