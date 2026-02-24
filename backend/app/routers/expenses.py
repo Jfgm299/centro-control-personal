@@ -22,7 +22,9 @@ def get_expense(
     expense_id:int,
     db: Session = Depends(get_db)
 ):
-    return expense_service.get_expense(expense_id,db)
+    expense_db = expense_service.get_expense(expense_id,db)
+    if not expense_db: raise HTTPException(status_code=404, detail='Expense not found')
+    return expense_db
 
 @router.post('/', response_model=ExpenseResponse, status_code=201)
 def create_expense(
@@ -37,7 +39,9 @@ def update_expense(
     data: ExpenseUpdate,
     db: Session = Depends(get_db)
 ):
-    return expense_service.update_expense(expense_id, data, db)
+    expense_db = expense_service.update_expense(expense_id, data, db)
+    if not expense_db: raise HTTPException(status_code=404, detail='Expense not found')
+    return expense_db
 
 @router.delete('/{expense_id}', response_description='Successfully deleted', status_code=204)
 def delete_expense(

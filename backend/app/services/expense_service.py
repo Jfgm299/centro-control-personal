@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import date
+from typing import List
 from ..models import Expense
 from ..schemas import ExpenseCreate, ExpenseUpdate
 
@@ -13,7 +12,6 @@ class ExpenseService:
     def get_expense(self, expense_id: int, db: Session) -> Expense:
         db_expense = db.query(Expense).filter(Expense.id == expense_id).first()
 
-        if not db_expense: raise HTTPException(status_code=404, detail='Expense not found')
         return db_expense
     
     def create_expense(self, data: ExpenseCreate, db: Session ) -> Expense:
@@ -39,8 +37,7 @@ class ExpenseService:
         db_expense = db.query(Expense).filter(Expense.id == expense_id).first()
 
         #Paso2: 404 si no existe
-        if not db_expense: raise HTTPException(status_code=404, detail='Expense not found')
-
+        if not db_expense: return None
         #Paso3: actualizar solo los campos que vienen en el request
         #exclude_unset=True -> ignora los campos que el usuario no envió
         update_data = data.model_dump(exclude_none= True )
