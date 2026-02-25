@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import expenses_router
+from .routers import expenses_router, workouts_router
+from .handlers import register_exception_handlers
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -20,7 +22,10 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+register_exception_handlers(app)
+
 app.include_router(expenses_router, prefix='/api')
+app.include_router(workouts_router, prefix="/api")
 
 @app.get("/")
 def root():
