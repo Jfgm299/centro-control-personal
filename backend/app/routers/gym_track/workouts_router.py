@@ -1,13 +1,12 @@
 # routers/gym_track/workouts.py
-from ...services import WorkoutService
+from ...services import workout_service
 from fastapi import APIRouter, Query, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ...schemas import WorkoutCreate, WorkoutResponse, WorkoutEnd, WorkoutDetailResponse
+from ...schemas import WorkoutCreate, WorkoutResponse, WorkoutEnd, WorkoutDetailResponse, ExerciseResponse
 from ...database import get_db
 from typing import List
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
-workout_service = WorkoutService()
 
 @router.get("/", response_model=List[WorkoutResponse])
 def get_workouts(
@@ -49,5 +48,5 @@ def delete_workout(
     workout_id:int,
     db: Session = Depends(get_db)
 ):
-    sucess = workout_service.delete_workout(workout_id, db)
+    sucess = workout_service.delete_workout(db, workout_id)
     return {"message": "Workout eliminated", "id": workout_id}

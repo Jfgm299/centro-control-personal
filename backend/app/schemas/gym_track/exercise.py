@@ -2,15 +2,18 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
 from .set import SetResponse
+from ...enums import GymSetType
 
 class ExerciseCreate(BaseModel):
     name: str = Field(..., min_length=1, description='Name of the exercise')
+    exercise_type: GymSetType
     notes: Optional[str] = None
 
 class ExerciseResponse(BaseModel):
     id: int
     workout_id: int
     name: str
+    exercise_type: GymSetType
     order: int
     notes: Optional[str]
     created_at: datetime
@@ -23,6 +26,7 @@ class ExerciseDetailResponse(BaseModel):
     id: int
     workout_id: int
     name: str
+    exercise_type: GymSetType
     order: int
     notes: Optional[str]
     created_at: datetime

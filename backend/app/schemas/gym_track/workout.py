@@ -37,8 +37,8 @@ class WorkoutDetailResponse(BaseModel):
     ended_at: Optional[datetime]
     duration_minutes: Optional[int]
     muscle_groups: List[str]
-    total_exercises: int
-    total_sets: int
+    total_exercises: Optional[int]
+    total_sets: Optional[int]
     notes: Optional[str]
     exercises: List[ExerciseDetailResponse] = []  # ← Aquí los incluyes
     

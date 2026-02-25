@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum
 from ...database import Base
+from ...enums import GymSetType
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -10,6 +11,7 @@ class Exercise(Base):
     name = Column(String(150), nullable=False)
     order = Column(Integer)
     notes = Column(String, nullable=True)
+    exercise_type = Column(Enum(GymSetType), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     workout_id = Column(Integer, ForeignKey('workouts.id', ondelete='CASCADE'))
