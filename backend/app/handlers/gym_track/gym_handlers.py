@@ -65,6 +65,7 @@ GYM_EXCEPTION_HANDLERS = {
     WorkoutAlreadyActiveError: workout_already_active_handler,
     ExerciseNotFoundError: exercise_not_found_handler,
     ExerciseNotInWorkoutError: exercise_not_in_workout_handler,
+    SetNotFoundError: set_not_found_handler,
     SetTypeMismatchError: set_type_mismatch_handler,
     BodyMeasureNotFound: body_measurement_not_found_handler
 }

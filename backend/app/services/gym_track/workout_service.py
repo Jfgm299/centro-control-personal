@@ -34,7 +34,6 @@ class WorkoutService:
         return workout
 
     def end_workout(self, db: Session, workout_id: int, data: WorkoutEnd) -> Optional[Workout]:
-        """Finalizar workout y calcular estadísticas"""
         workout = db.query(Workout).filter(Workout.id == workout_id).first()
 
         if not workout:
@@ -42,8 +41,15 @@ class WorkoutService:
         if workout.ended_at:
             raise WorkoutAlreadyEndedError(workout_id)
 
-        workout.ended_at = datetime.now(timezone.utc)
-        duration = (workout.ended_at - workout.started_at).total_seconds()
+        now = datetime.now(timezone.utc)
+        workout.ended_at = now
+
+        # ← compatibilidad con SQLite (timezone-naive) y PostgreSQL (timezone-aware)
+        started_at = workout.started_at
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=timezone.utc)
+
+        duration = (now - started_at).total_seconds()
         workout.duration_minutes = int(duration / 60)
         workout.total_exercises = len(workout.exercises)
         workout.total_sets = sum(len(exercise.sets) for exercise in workout.exercises)

@@ -5,7 +5,7 @@ from ...database import get_db
 from ...schemas.gym_track.set import SetCreate, SetResponse
 from ...services.gym_track.set_service import set_service
 
-router = APIRouter(prefix="/api/workouts", tags=["sets"])
+router = APIRouter(prefix="/workouts", tags=["sets"])
 
 
 @router.post(

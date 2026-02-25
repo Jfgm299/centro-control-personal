@@ -4,8 +4,8 @@ from .database import engine, Base
 from .routers import expenses_router, workouts_router, exercises_router, sets_router, body_measurements_router
 from .handlers import register_exception_handlers
 
-
-Base.metadata.create_all(bind=engine)
+if __name__ == '__main__':
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Centro Control",

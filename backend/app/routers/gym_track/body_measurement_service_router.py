@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Depends
 from ...schemas import BodyMeasurementCreate, BodyMeasurementResponse
-from ...models import BodyMeasurement
 from typing import List
 from sqlalchemy.orm import Session
 from ...services import body_measurement_service

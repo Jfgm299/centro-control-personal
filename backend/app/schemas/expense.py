@@ -1,14 +1,16 @@
-from pydantic import BaseModel, Field
-from datetime import date, datetime
+from pydantic import BaseModel, Field, ConfigDict
+from datetime import datetime
 from typing import Optional
 from ..enums import ExpenseCategory
 
 class ExpenseCreate(BaseModel):
-    name: str = Field(...,min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=100)
     quantity: float = Field(..., gt=0, description='Amount spent')
     account: ExpenseCategory
 
 class ExpenseResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     quantity: float
@@ -16,12 +18,7 @@ class ExpenseResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
-
 class ExpenseUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length = 1, max_length = 100)
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
     quantity: Optional[float] = Field(None, gt=0)
     account: Optional[ExpenseCategory] = None
-
-    

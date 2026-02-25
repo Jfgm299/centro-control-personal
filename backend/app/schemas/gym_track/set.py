@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 
@@ -12,6 +12,8 @@ class SetCreate(BaseModel):
     notes: Optional[str] = None
 
 class SetResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     exercise_id: int
     set_number: int
@@ -29,6 +31,3 @@ class SetResponse(BaseModel):
     rpe: Optional[int]
     notes: Optional[str]
     created_at: datetime
-    
-    class Config:
-        from_attributes = True

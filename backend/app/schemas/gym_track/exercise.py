@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional, List
 from .set import SetResponse
@@ -10,6 +10,8 @@ class ExerciseCreate(BaseModel):
     notes: Optional[str] = None
 
 class ExerciseResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     workout_id: int
     name: str
@@ -18,10 +20,9 @@ class ExerciseResponse(BaseModel):
     notes: Optional[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class ExerciseDetailResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Con los sets incluidos"""
     id: int
     workout_id: int
@@ -30,8 +31,5 @@ class ExerciseDetailResponse(BaseModel):
     order: int
     notes: Optional[str]
     created_at: datetime
-    sets: List[SetResponse] = []  # ← Aquí los incluyes
-    
-    class Config:
-        from_attributes = True
+    sets: List[SetResponse] = []
 

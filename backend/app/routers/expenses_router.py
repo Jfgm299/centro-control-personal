@@ -1,7 +1,5 @@
-from fastapi import APIRouter, Query, Depends, HTTPException
-from ..enums import ExpenseCategory
+from fastapi import APIRouter, Depends, HTTPException
 from ..schemas import ExpenseCreate, ExpenseResponse, ExpenseUpdate
-from ..models import Expense
 from typing import List
 from sqlalchemy.orm import Session
 from ..services import ExpenseService

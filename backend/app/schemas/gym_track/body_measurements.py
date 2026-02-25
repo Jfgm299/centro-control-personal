@@ -1,5 +1,5 @@
 # schemas/gym_track/body_measurement.py
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 
@@ -11,12 +11,11 @@ class BodyMeasurementCreate(BaseModel):
 
 
 class BodyMeasurementResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     measured_at: datetime
     weight_kg: float
     body_fat_percent: Optional[float]
     notes: Optional[str]
     created_at: datetime
-    
-    class Config:
-        from_attributes = True

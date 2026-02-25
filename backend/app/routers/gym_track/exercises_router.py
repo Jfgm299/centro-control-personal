@@ -1,7 +1,7 @@
 
-from fastapi import APIRouter, Query, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from ...schemas import WorkoutCreate, WorkoutResponse, WorkoutEnd, WorkoutDetailResponse, ExerciseResponse
+from ...schemas import ExerciseResponse
 from ...database import get_db
 from typing import List
 
