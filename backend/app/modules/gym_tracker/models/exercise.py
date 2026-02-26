@@ -1,13 +1,14 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum
-from ....core.database import Base
+from app.core.database import Base
 from ..enums import GymSetType
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
 class Exercise(Base):
     __tablename__ = 'exercises'
+    __table_args__ = {'extend_existing': True}
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     name = Column(String(150), nullable=False)
     order = Column(Integer)
     notes = Column(String, nullable=True)

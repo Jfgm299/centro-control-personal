@@ -2,8 +2,8 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime, timezone
 
-from ..models import Workout
-from ..models import WorkoutMuscleGroup
+from ..models.workout import Workout
+from ..models.workout_muscle_group import WorkoutMuscleGroup
 from ..schemas import WorkoutCreate, WorkoutEnd, WorkoutDetailResponse
 from ..schemas import ExerciseDetailResponse
 from ..schemas import SetResponse

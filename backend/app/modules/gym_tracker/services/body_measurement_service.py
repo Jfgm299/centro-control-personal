@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List
 
-from ..models import BodyMeasurement
+from ..models.body_measurement import BodyMeasurement
 from ..schemas import BodyMeasurementCreate
 from ..exceptions import BodyMeasureNotFound
 

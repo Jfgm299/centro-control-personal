@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from ..models import Exercise
-from ..models import Workout
+from ..models.exercise import Exercise
+from ..models.workout import Workout
 from ..schemas import ExerciseCreate, ExerciseDetailResponse, SetResponse
 from ..exceptions import ExerciseNotFoundError, WorkoutNotFoundError, WorkoutAlreadyEndedError, ExerciseNotInWorkoutError
 

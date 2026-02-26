@@ -1,12 +1,13 @@
 from sqlalchemy import Column, Integer, Float, Text, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from ....core.database import Base
+from app.core.database import Base
 
 class Set(Base):
     __tablename__ = 'sets'
+    __table_args__ = {'extend_existing': True}
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     exercise_id = Column(Integer, ForeignKey('exercises.id', ondelete='CASCADE'))
     set_number = Column(Integer, nullable=False)
     rpe = Column(Integer, nullable=True) # Rate of perceived Exertion (1-10)

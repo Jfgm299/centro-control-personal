@@ -4,7 +4,7 @@ class TestCreateSet:
         self, client, active_workout_id, weight_exercise_id, sample_set_weight_data
     ):
         response = client.post(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
             json=sample_set_weight_data
         )
         assert response.status_code == 201
@@ -23,7 +23,7 @@ class TestCreateSet:
         self, client, active_workout_id, cardio_exercise_id, sample_set_cardio_data
     ):
         response = client.post(
-            f"/api/workouts/{active_workout_id}/{cardio_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{cardio_exercise_id}/sets",
             json=sample_set_cardio_data
         )
         assert response.status_code == 201
@@ -40,19 +40,19 @@ class TestCreateSet:
         self, client, active_workout_id, weight_exercise_id, sample_set_weight_data
     ):
         response1 = client.post(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
             json=sample_set_weight_data
         )
         assert response1.json()["set_number"] == 1
 
         response2 = client.post(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
             json={**sample_set_weight_data, "weight_kg": 85.0}
         )
         assert response2.json()["set_number"] == 2
 
         response3 = client.post(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
             json={**sample_set_weight_data, "weight_kg": 90.0}
         )
         assert response3.json()["set_number"] == 3
@@ -61,7 +61,7 @@ class TestCreateSet:
         self, client, weight_exercise_id, sample_set_weight_data
     ):
         response = client.post(
-            f"/api/workouts/999/{weight_exercise_id}/sets",
+            f"/api/v1/workouts/999/{weight_exercise_id}/sets",
             json=sample_set_weight_data
         )
         assert response.status_code == 404
@@ -70,7 +70,7 @@ class TestCreateSet:
         self, client, active_workout_id, sample_set_weight_data
     ):
         response = client.post(
-            f"/api/workouts/{active_workout_id}/999/sets",
+            f"/api/v1/workouts/{active_workout_id}/999/sets",
             json=sample_set_weight_data
         )
         assert response.status_code == 404
@@ -79,10 +79,10 @@ class TestCreateSet:
         self, client, active_workout_id, sample_exercise_weight_data, sample_set_weight_data
     ):
         # Finalizar el workout activo
-        client.post(f"/api/workouts/{active_workout_id}", json={})
+        client.post(f"/api/v1/workouts/{active_workout_id}", json={})
 
         # Crear segundo workout
-        response2 = client.post("/api/workouts/", json={
+        response2 = client.post("/api/v1/workouts/", json={
             "muscle_groups": ["Chest"],
             "notes": "Second workout"
         })
@@ -90,14 +90,14 @@ class TestCreateSet:
 
         # Crear ejercicio en el segundo workout
         response3 = client.post(
-            f"/api/workouts/{workout2_id}/exercises",
+            f"/api/v1/workouts/{workout2_id}/exercises",
             json=sample_exercise_weight_data
         )
         exercise2_id = response3.json()["id"]
 
         # Intentar crear set con workout_id del primero y exercise_id del segundo
         response = client.post(
-            f"/api/workouts/{active_workout_id}/{exercise2_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{exercise2_id}/sets",
             json=sample_set_weight_data
         )
         assert response.status_code == 409  # ExerciseNotInWorkoutError
@@ -113,7 +113,7 @@ class TestCreateSet:
             "duration_seconds": None
         }
         response = client.post(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
             json=invalid_data
         )
         assert response.status_code == 409  # SetTypeMismatchError
@@ -129,7 +129,7 @@ class TestCreateSet:
             "reps": None
         }
         response = client.post(
-            f"/api/workouts/{active_workout_id}/{cardio_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{cardio_exercise_id}/sets",
             json=invalid_data
         )
         assert response.status_code == 409  # SetTypeMismatchError
@@ -138,7 +138,7 @@ class TestCreateSet:
         self, client, active_workout_id, cardio_exercise_id, sample_set_weight_data
     ):
         response = client.post(
-            f"/api/workouts/{active_workout_id}/{cardio_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{cardio_exercise_id}/sets",
             json=sample_set_weight_data
         )
         assert response.status_code == 409  # SetTypeMismatchError
@@ -147,7 +147,7 @@ class TestCreateSet:
         self, client, active_workout_id, weight_exercise_id, sample_set_cardio_data
     ):
         response = client.post(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
             json=sample_set_cardio_data
         )
         assert response.status_code == 409  # SetTypeMismatchError
@@ -157,7 +157,7 @@ class TestGetSets:
 
     def test_get_sets_empty(self, client, active_workout_id, weight_exercise_id):
         response = client.get(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets"
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets"
         )
         assert response.status_code == 200
         assert response.json() == []
@@ -167,12 +167,12 @@ class TestGetSets:
     ):
         for i in range(3):
             client.post(
-                f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+                f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
                 json={**sample_set_weight_data, "weight_kg": 80.0 + (i * 5)}
             )
 
         response = client.get(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets"
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets"
         )
         assert response.status_code == 200
         data = response.json()
@@ -185,11 +185,11 @@ class TestGetSets:
         assert data[2]["weight_kg"] == 90.0
 
     def test_get_sets_workout_not_found(self, client, weight_exercise_id):
-        response = client.get(f"/api/workouts/999/{weight_exercise_id}/sets")
+        response = client.get(f"/api/v1/workouts/999/{weight_exercise_id}/sets")
         assert response.status_code == 404
 
     def test_get_sets_exercise_not_found(self, client, active_workout_id):
-        response = client.get(f"/api/workouts/{active_workout_id}/999/sets")
+        response = client.get(f"/api/v1/workouts/{active_workout_id}/999/sets")
         assert response.status_code == 404
 
 
@@ -198,32 +198,32 @@ class TestDeleteSet:
     def test_delete_set_success(self, client, weight_exercise_with_set):
         workout_id, exercise_id, set_id = weight_exercise_with_set
         response = client.delete(
-            f"/api/workouts/{workout_id}/{exercise_id}/sets/{set_id}"
+            f"/api/v1/workouts/{workout_id}/{exercise_id}/sets/{set_id}"
         )
         assert response.status_code == 204
 
-        get_response = client.get(f"/api/workouts/{workout_id}/{exercise_id}/sets")
+        get_response = client.get(f"/api/v1/workouts/{workout_id}/{exercise_id}/sets")
         assert len(get_response.json()) == 0
 
     def test_delete_set_not_found(
         self, client, active_workout_id, weight_exercise_id
     ):
         response = client.delete(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets/999"
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets/999"
         )
         assert response.status_code == 404
 
     def test_delete_set_workout_not_found(self, client, weight_exercise_with_set):
         _, exercise_id, set_id = weight_exercise_with_set
         response = client.delete(
-            f"/api/workouts/999/{exercise_id}/sets/{set_id}"
+            f"/api/v1/workouts/999/{exercise_id}/sets/{set_id}"
         )
         assert response.status_code == 404
 
     def test_delete_set_exercise_not_found(self, client, weight_exercise_with_set):
         workout_id, _, set_id = weight_exercise_with_set
         response = client.delete(
-            f"/api/workouts/{workout_id}/999/sets/{set_id}"
+            f"/api/v1/workouts/{workout_id}/999/sets/{set_id}"
         )
         assert response.status_code == 404
 
@@ -233,17 +233,17 @@ class TestDeleteSet:
         set_ids = []
         for i in range(3):
             response = client.post(
-                f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+                f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
                 json={**sample_set_weight_data, "weight_kg": 80.0 + (i * 5)}
             )
             set_ids.append(response.json()["id"])
 
         client.delete(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets/{set_ids[1]}"
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets/{set_ids[1]}"
         )
 
         response = client.get(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets"
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets"
         )
         remaining_sets = response.json()
         assert len(remaining_sets) == 2
@@ -257,13 +257,13 @@ class TestSetEdgeCases:
         self, client, active_workout_id, weight_exercise_id
     ):
         response1 = client.post(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
             json={"weight_kg": 80.0, "reps": 10, "rpe": 1}
         )
         assert response1.status_code == 201
 
         response2 = client.post(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
             json={"weight_kg": 80.0, "reps": 10, "rpe": 10}
         )
         assert response2.status_code == 201
@@ -272,7 +272,7 @@ class TestSetEdgeCases:
         self, client, active_workout_id, weight_exercise_id
     ):
         response = client.post(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
             json={"weight_kg": 0.0, "reps": 10, "rpe": 7}
         )
         assert response.status_code == 201
@@ -283,7 +283,7 @@ class TestSetEdgeCases:
     ):
         data_with_notes = {**sample_set_weight_data, "notes": "Felt heavy"}
         response = client.post(
-            f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",
+            f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
             json=data_with_notes
         )
         assert response.status_code == 201
