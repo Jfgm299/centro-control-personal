@@ -8,6 +8,6 @@ class BodyMeasurement(Base):
 
     id = Column(Integer, primary_key=True)
     weight_kg = Column(Float, nullable=False)
-    body_fat_percentage = Column(Float, nullable=True)
+    body_fat_percent = Column(Float, nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

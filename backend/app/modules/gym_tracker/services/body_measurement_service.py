@@ -13,7 +13,7 @@ class BodyMeasureService:
     def get_measure(self, measure_id: int, db: Session) -> BodyMeasurement:
         db_measure = db.query(BodyMeasurement).filter(BodyMeasurement.id == measure_id).first()
         
-        if not db_measure: raise BodyMeasureNotFound
+        if not db_measure: raise BodyMeasureNotFound(measure_id)
         return db_measure
 
     def create_measure(self, db: Session, data: BodyMeasurementCreate) -> BodyMeasurement:
@@ -26,7 +26,7 @@ class BodyMeasureService:
     def delete_measure(self, measure_id: int, db: Session) -> bool:
         db_measure = db.query(BodyMeasurement).filter(BodyMeasurement.id == measure_id).first()
 
-        if not db_measure: raise BodyMeasureNotFound
+        if not db_measure: raise BodyMeasureNotFound(measure_id)
 
         db.delete(db_measure)
         db.commit()

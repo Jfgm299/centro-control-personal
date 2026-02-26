@@ -25,7 +25,7 @@ def create_measure(
     data: BodyMeasurementCreate,
     db: Session = Depends(get_db)
 ):
-    return body_measurement_service.create_measure(data,db)
+    return body_measurement_service.create_measure(db, data)
 
 @router.delete('/{measurement_id}', response_description='Successfully deleted', status_code=204)
 def delete_measure(
