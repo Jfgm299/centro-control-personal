@@ -59,14 +59,13 @@ def sample_expense_data():
         "name": "Test Expense",
         "quantity": 50.0,
         "account": "Imagin",
-        "date": "2026-02-25"
     }
 
 
 @pytest.fixture
 def sample_workout_data():
     return {
-        "muscle_groups": ["Chest", "Arms"],  # ← Arms no existe en el enum, corregido abajo
+        "muscle_groups": ["Chest", "Back"],
         "notes": "Test workout"
     }
 
@@ -115,17 +114,34 @@ def sample_set_cardio_data():
     }
 
 
+@pytest.fixture
+def sample_body_measurement_data():
+    return {
+        "weight_kg": 75.0,
+        "body_fat_percent": 15.0,
+        "notes": "Morning measurement"
+    }
+
+
 # ==================== FIXTURES COMPUESTOS ====================
 
 @pytest.fixture
 def active_workout_id(client):
     """Crea un workout activo y retorna su ID"""
     response = client.post("/api/v1/workouts/", json={
-        "muscle_groups": ["Chest", "Back"],  # ← valores válidos del enum
+        "muscle_groups": ["Chest", "Back"],
         "notes": "Test workout"
     })
     assert response.status_code == 201, response.json()
     return response.json()["id"]
+
+
+@pytest.fixture
+def ended_workout_id(client, active_workout_id):
+    """Crea un workout y lo finaliza, retorna su ID"""
+    response = client.post(f"/api/v1/workouts/{active_workout_id}", json={"notes": "Finished"})
+    assert response.status_code == 201, response.json()
+    return active_workout_id
 
 
 @pytest.fixture
@@ -153,7 +169,7 @@ def cardio_exercise_id(client, active_workout_id, sample_exercise_cardio_data):
 @pytest.fixture
 def weight_exercise_with_set(client, active_workout_id, weight_exercise_id, sample_set_weight_data):
     response = client.post(
-        f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",  # ← URL correcta
+        f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",
         json=sample_set_weight_data
     )
     assert response.status_code == 201, response.json()
@@ -163,8 +179,24 @@ def weight_exercise_with_set(client, active_workout_id, weight_exercise_id, samp
 @pytest.fixture
 def cardio_exercise_with_set(client, active_workout_id, cardio_exercise_id, sample_set_cardio_data):
     response = client.post(
-        f"/api/v1/workouts/{active_workout_id}/{cardio_exercise_id}/sets",  # ← URL correcta
+        f"/api/v1/workouts/{active_workout_id}/{cardio_exercise_id}/sets",
         json=sample_set_cardio_data
     )
     assert response.status_code == 201, response.json()
     return (active_workout_id, cardio_exercise_id, response.json()["id"])
+
+
+@pytest.fixture
+def expense_id(client, sample_expense_data):
+    """Crea un gasto y retorna su ID"""
+    response = client.post("/api/v1/expenses/", json=sample_expense_data)
+    assert response.status_code == 201, response.json()
+    return response.json()["id"]
+
+
+@pytest.fixture
+def body_measurement_id(client, sample_body_measurement_data):
+    """Crea una medición corporal y retorna su ID"""
+    response = client.post("/api/v1/body-measures/", json=sample_body_measurement_data)
+    assert response.status_code == 201, response.json()
+    return response.json()["id"]

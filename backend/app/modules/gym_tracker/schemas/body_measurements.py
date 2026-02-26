@@ -14,7 +14,6 @@ class BodyMeasurementResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    measured_at: datetime
     weight_kg: float
     body_fat_percent: Optional[float]
     notes: Optional[str]
