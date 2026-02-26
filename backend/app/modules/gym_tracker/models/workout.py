@@ -5,7 +5,7 @@ from app.core.database import Base
 
 class Workout(Base):
     __tablename__ = 'workouts'
-    __table_args__ = {'extend_existing': True}
+    __table_args__ = {'schema':'gym_tracker', 'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     started_at = Column(DateTime(timezone=True), server_default=func.now())

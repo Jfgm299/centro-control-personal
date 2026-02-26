@@ -4,7 +4,7 @@ from app.core.database import Base
 
 class BodyMeasurement(Base):
     __tablename__ = 'body_measurements'
-    __table_args__ = {'extend_existing': True}
+    __table_args__ = {'schema':'gym_tracker', 'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     weight_kg = Column(Float, nullable=False)
