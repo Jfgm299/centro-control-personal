@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.core.database import Base, get_db
+from app.core import Base, get_db
 from app.main import app
 
 
@@ -25,6 +25,7 @@ TestingSessionLocal = sessionmaker(
 
 @pytest.fixture(scope="function")
 def db():
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:
@@ -119,7 +120,7 @@ def sample_set_cardio_data():
 @pytest.fixture
 def active_workout_id(client):
     """Crea un workout activo y retorna su ID"""
-    response = client.post("/api/workouts/", json={
+    response = client.post("/api/v1/workouts/", json={
         "muscle_groups": ["Chest", "Back"],  # ← valores válidos del enum
         "notes": "Test workout"
     })
@@ -131,7 +132,7 @@ def active_workout_id(client):
 def weight_exercise_id(client, active_workout_id, sample_exercise_weight_data):
     """Crea un ejercicio de peso y retorna su ID"""
     response = client.post(
-        f"/api/workouts/{active_workout_id}/exercises",
+        f"/api/v1/workouts/{active_workout_id}/exercises",
         json=sample_exercise_weight_data
     )
     assert response.status_code == 201, response.json()
@@ -142,7 +143,7 @@ def weight_exercise_id(client, active_workout_id, sample_exercise_weight_data):
 def cardio_exercise_id(client, active_workout_id, sample_exercise_cardio_data):
     """Crea un ejercicio de cardio y retorna su ID"""
     response = client.post(
-        f"/api/workouts/{active_workout_id}/exercises",
+        f"/api/v1/workouts/{active_workout_id}/exercises",
         json=sample_exercise_cardio_data
     )
     assert response.status_code == 201, response.json()
@@ -152,7 +153,7 @@ def cardio_exercise_id(client, active_workout_id, sample_exercise_cardio_data):
 @pytest.fixture
 def weight_exercise_with_set(client, active_workout_id, weight_exercise_id, sample_set_weight_data):
     response = client.post(
-        f"/api/workouts/{active_workout_id}/{weight_exercise_id}/sets",  # ← URL correcta
+        f"/api/v1/workouts/{active_workout_id}/{weight_exercise_id}/sets",  # ← URL correcta
         json=sample_set_weight_data
     )
     assert response.status_code == 201, response.json()
@@ -162,7 +163,7 @@ def weight_exercise_with_set(client, active_workout_id, weight_exercise_id, samp
 @pytest.fixture
 def cardio_exercise_with_set(client, active_workout_id, cardio_exercise_id, sample_set_cardio_data):
     response = client.post(
-        f"/api/workouts/{active_workout_id}/{cardio_exercise_id}/sets",  # ← URL correcta
+        f"/api/v1/workouts/{active_workout_id}/{cardio_exercise_id}/sets",  # ← URL correcta
         json=sample_set_cardio_data
     )
     assert response.status_code == 201, response.json()
