@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.database import engine, Base
-from .routers import expenses_router, workouts_router, exercises_router, sets_router, body_measurements_router
-from .handlers import register_exception_handlers
+from .modules.expenses_tracker.expenses_router import router as expenses_router
+from .modules.gym_tracker.routers import workouts_router, exercises_router, sets_router, body_measurements_router
+from .modules.gym_tracker.handlers import register_exception_handlers
 
 if __name__ == '__main__':
     Base.metadata.create_all(bind=engine)
