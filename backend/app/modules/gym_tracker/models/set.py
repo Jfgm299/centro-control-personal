@@ -5,10 +5,10 @@ from app.core.database import Base
 
 class Set(Base):
     __tablename__ = 'sets'
-    __table_args__ = {'extend_existing': True}
+    __table_args__ = {'schema':'gym_tracker', 'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
-    exercise_id = Column(Integer, ForeignKey('exercises.id', ondelete='CASCADE'))
+    exercise_id = Column(Integer, ForeignKey('gym_tracker.exercises.id', ondelete='CASCADE'))
     set_number = Column(Integer, nullable=False)
     rpe = Column(Integer, nullable=True) # Rate of perceived Exertion (1-10)
     notes = Column(Text, nullable=True)
