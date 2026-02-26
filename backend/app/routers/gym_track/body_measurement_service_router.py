@@ -4,7 +4,7 @@ from typing import List
 from sqlalchemy.orm import Session
 from ...services import body_measurement_service
 
-from ...database import get_db
+from ...core.database import get_db
 
 router = APIRouter(prefix='/body-measures', tags=['body-measures'])
 

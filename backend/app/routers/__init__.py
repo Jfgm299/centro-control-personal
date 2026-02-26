@@ -1,4 +1,4 @@
-from .expenses_router import router as expenses_router
+from ..modules.expenses_tracker.expenses_router import router as expenses_router
 from .gym_track.workouts_router import router as workouts_router
 from .gym_track.exercises_router import router as exercises_router
 from .gym_track.sets_router import router as sets_router
