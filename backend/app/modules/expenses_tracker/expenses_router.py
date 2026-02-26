@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from ...schemas import ExpenseCreate, ExpenseResponse, ExpenseUpdate
+from .expense_schema import ExpenseCreate, ExpenseResponse, ExpenseUpdate
 from typing import List
 from sqlalchemy.orm import Session
-from ...services import ExpenseService
+from .expense_service import ExpenseService
 
 from ...core.database import get_db
 
