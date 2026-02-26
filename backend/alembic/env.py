@@ -15,8 +15,9 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
-from backend.app.core.database import Base
-from app.models import *
+from backend.app.core import Base
+from app.modules.expenses_tracker import expense
+from app.modules.gym_tracker.models import *
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
