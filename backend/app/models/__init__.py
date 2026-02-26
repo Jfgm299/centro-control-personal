@@ -1,4 +1,4 @@
-from .expense import Expense
+from ..modules.expenses_tracker.models.expense import Expense
 from .gym_track.workout import Workout
 from .gym_track.workout_muscle_group import WorkoutMuscleGroup
 from .gym_track.exercise import Exercise
