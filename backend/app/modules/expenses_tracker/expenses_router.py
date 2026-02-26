@@ -6,7 +6,7 @@ from .expense_service import ExpenseService
 
 from app.core.database import get_db
 
-router = APIRouter(prefix='/expenses', tags=['expenses'])
+router = APIRouter(prefix='/expenses', tags=['Expenses'])
 expense_service = ExpenseService()
 
 @router.get('/',response_model=List[ExpenseResponse])

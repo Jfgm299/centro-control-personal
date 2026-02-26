@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ..services import body_measurement_service
 from app.core.database import get_db
 
-router = APIRouter(prefix='/body-measures', tags=['body-measures'])
+router = APIRouter(prefix='/body-measures', tags=['Body Measurements'])
 
 @router.get('/', response_model=List[BodyMeasurementResponse])
 def get_measures(

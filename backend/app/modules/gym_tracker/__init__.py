@@ -13,4 +13,17 @@ router.include_router(exercises_router)
 router.include_router(sets_router)
 router.include_router(body_router)
 
-__all__ = ['router']
+
+TAGS = [
+    {"name": "Workouts",          "description": "Sesiones de entrenamiento"},
+    {"name": "Exercises",         "description": "Ejercicios dentro de un entreno"},
+    {"name": "Sets",              "description": "Series dentro de un ejercicio"},
+    {"name": "Body Measurements", "description": "Medidas corporales"},
+]
+
+TAG_GROUP = {
+    "name": "Gym Tracker",
+    "tags": ["Workouts", "Exercises", "Sets", "Body Measurements"]
+}
+
+__all__ = ['router', 'TAGS', 'TAG_GROUP']

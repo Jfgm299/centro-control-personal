@@ -6,7 +6,7 @@ from ..schemas import WorkoutCreate, WorkoutResponse, WorkoutEnd, WorkoutDetailR
 from app.core.database import get_db
 from typing import List
 
-router = APIRouter(prefix="/workouts", tags=["workouts"])
+router = APIRouter(prefix="/workouts", tags=["Workouts"])
 
 @router.get("/", response_model=List[WorkoutResponse])
 def get_workouts(

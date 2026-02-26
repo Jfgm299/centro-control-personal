@@ -5,7 +5,7 @@ from app.core.database import get_db
 from ..schemas import SetCreate, SetResponse
 from ..services import set_service
 
-router = APIRouter(prefix="/workouts", tags=["sets"])
+router = APIRouter(prefix="/workouts", tags=["Sets"])
 
 
 @router.post(

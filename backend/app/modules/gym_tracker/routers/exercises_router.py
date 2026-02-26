@@ -8,14 +8,13 @@ from typing import List
 from ..services import exercise_service
 from ..schemas import ExerciseCreate, ExerciseResponse, ExerciseDetailResponse
 
-router = APIRouter(prefix="/workouts", tags=["exercises"])
+router = APIRouter(prefix="/workouts", tags=['Exercises'])
 
 
 @router.post(
     "/{workout_id}/exercises", 
     response_model=ExerciseResponse, 
     status_code=201,
-    tags=['exercises']
 )
 def add_exercise_to_workout(
     workout_id: int,
@@ -29,7 +28,6 @@ def add_exercise_to_workout(
 @router.get(
     "/{workout_id}/exercises",
     response_model=List[ExerciseResponse],
-    tags=['exercises']
 )
 def get_workout_exercises(
     workout_id: int,
@@ -38,7 +36,7 @@ def get_workout_exercises(
     """List all exercises of a workout"""
     return exercise_service.get_all_by_workout(db, workout_id)
 
-@router.get('/{workout_id}/{exercise_id}', response_model=ExerciseResponse, tags=['exercises'])
+@router.get('/{workout_id}/{exercise_id}', response_model=ExerciseResponse)
 def get_exercise(
     workout_id: int,
     exercise_id: int,
@@ -46,7 +44,7 @@ def get_exercise(
 ):
     return exercise_service.get_exercise_by_id(db, workout_id, exercise_id)
 
-@router.get("/{workout_id}/{exercise_id}/long", response_model=ExerciseDetailResponse, tags=['exercises'])
+@router.get("/{workout_id}/{exercise_id}/long", response_model=ExerciseDetailResponse)
 def get_exercise_detail(
     workout_id: int,
     exercise_id: int,
