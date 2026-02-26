@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Enum, ForeignKey
-from ...database import Base
+from ...core.database import Base
 from ...enums import MuscleGroupCategory
 from sqlalchemy.orm import relationship
 

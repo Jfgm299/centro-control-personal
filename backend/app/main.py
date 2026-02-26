@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import engine, Base
+from .core.database import engine, Base
 from .routers import expenses_router, workouts_router, exercises_router, sets_router, body_measurements_router
 from .handlers import register_exception_handlers
 
@@ -10,7 +10,7 @@ if __name__ == '__main__':
 app = FastAPI(
     title="Centro Control",
     description= 'prueba',
-    version='2.0.0'
+    version='2.0.1'
 )
 
 # CORS

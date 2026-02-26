@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from ..schemas import ExpenseCreate, ExpenseResponse, ExpenseUpdate
+from ...schemas import ExpenseCreate, ExpenseResponse, ExpenseUpdate
 from typing import List
 from sqlalchemy.orm import Session
-from ..services import ExpenseService
+from ...services import ExpenseService
 
-from ..database import get_db
+from ...core.database import get_db
 
 router = APIRouter(prefix='/expenses', tags=['expenses'])
 expense_service = ExpenseService()

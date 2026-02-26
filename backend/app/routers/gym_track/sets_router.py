@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
-from ...database import get_db
+from ...core.database import get_db
 from ...schemas.gym_track.set import SetCreate, SetResponse
 from ...services.gym_track.set_service import set_service
 

@@ -1,4 +1,4 @@
-from .expense_service import ExpenseService
+from ..modules.expenses_tracker.expense_service import ExpenseService
 from .gym_track.workout_service import workout_service
 from .gym_track.exercise_service import exercise_service
 from .gym_track.set_service import set_service

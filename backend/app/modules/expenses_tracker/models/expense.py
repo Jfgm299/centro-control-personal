@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, Float, String, DateTime, Enum
 from sqlalchemy.sql import func
-from ..database import Base
+from ....core.database import Base
 from ..enums import ExpenseCategory
 
 

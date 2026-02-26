@@ -1,12 +1,17 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from datetime import datetime
 from typing import Optional
-from ..enums import ExpenseCategory
+from .enums import ExpenseCategory
 
 class ExpenseCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     quantity: float = Field(..., gt=0, description='Amount spent')
     account: ExpenseCategory
+
+    @field_validator('name')
+    @classmethod
+    def strip_name(cls, v: str) -> str:
+        return v.strip()
 
 class ExpenseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
