@@ -11,6 +11,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  db_test:
+    image: postgres:16-alpine
+    container_name: centro_control_db_test
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test_db
+    ports:
+      - "5433:5432"  # ← 5433 en el host para no colisionar
+
   api:
     build: ./backend
     container_name: sistema_api
@@ -21,8 +31,10 @@ services:
       - ./backend:/code
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/sistema_personal
+      - TEST_DATABASE_URL=postgresql://test:test@db_test:5432/test_db
     depends_on:
       - db
+      - db_test
 
 volumes:
   postgres_data:

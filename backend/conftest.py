@@ -8,13 +8,9 @@ from app.core import Base, get_db
 from app.main import app
 
 
-SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
+SQLALCHEMY_TEST_DATABASE_URL = "postgresql://test:test@db_test:5432/test_db"
 
-engine = create_engine(
-    SQLALCHEMY_TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+engine = create_engine(SQLALCHEMY_TEST_DATABASE_URL)
 
 TestingSessionLocal = sessionmaker(
     autocommit=False,
