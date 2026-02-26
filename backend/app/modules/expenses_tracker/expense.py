@@ -3,7 +3,6 @@ from sqlalchemy.sql import func
 from ...core.database import Base
 from .enums import ExpenseCategory
 
-
 class Expense(Base):
     __tablename__ = "expenses"
 

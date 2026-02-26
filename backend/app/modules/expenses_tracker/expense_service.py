@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List
-from .models import Expense
+from .expense import Expense
 from .expense_schema import ExpenseCreate, ExpenseUpdate
 
 class ExpenseService:
