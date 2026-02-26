@@ -1,4 +1,4 @@
-from .base_exeption import AppException
+from ....core.exeptions import AppException
 from ..enums import GymSetType
 
 class WorkoutAlreadyEndedError(AppException):
