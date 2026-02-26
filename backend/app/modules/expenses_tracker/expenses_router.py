@@ -4,7 +4,7 @@ from typing import List
 from sqlalchemy.orm import Session
 from .expense_service import ExpenseService
 
-from ...core.database import get_db
+from app.core.database import get_db
 
 router = APIRouter(prefix='/expenses', tags=['expenses'])
 expense_service = ExpenseService()

@@ -1,12 +1,13 @@
 from sqlalchemy import Column, Integer, Float, String, DateTime, Enum
 from sqlalchemy.sql import func
-from ...core.database import Base
+from app.core.database import Base
 from .enums import ExpenseCategory
 
 class Expense(Base):
     __tablename__ = "expenses"
+    __table_args__ = {'extend_existing': True}
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     quantity = Column(Float, nullable=False)
     account = Column(Enum(ExpenseCategory), nullable=False)

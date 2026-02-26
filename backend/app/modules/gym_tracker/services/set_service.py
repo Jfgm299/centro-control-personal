@@ -1,6 +1,8 @@
 from typing import List
 from sqlalchemy.orm import Session
-from ..models import Set, Exercise, Workout
+from ..models.set import Set
+from ..models.exercise import Exercise
+from ..models.workout import Workout
 from ..enums import GymSetType
 from ..schemas import SetCreate, SetResponse
 from ..exceptions import (
