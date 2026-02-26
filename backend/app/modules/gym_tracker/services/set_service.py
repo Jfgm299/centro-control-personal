@@ -1,9 +1,9 @@
-from typing import Optional, List, Union
+from typing import List
 from sqlalchemy.orm import Session
-from ...models import Set, Exercise, Workout
-from ...enums import GymSetType
-from ...schemas.gym_track.set import SetCreate, SetResponse
-from ...exceptions import (
+from ..models import Set, Exercise, Workout
+from ..enums import GymSetType
+from ..schemas import SetCreate, SetResponse
+from ..exceptions import (
     WorkoutNotFoundError, ExerciseNotFoundError,
     ExerciseNotInWorkoutError, SetNotFoundError, SetTypeMismatchError
 )

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List
-from ...models import Expense
-from ...schemas import ExpenseCreate, ExpenseUpdate
+from .expense import Expense
+from .expense_schema import ExpenseCreate, ExpenseUpdate
 
 class ExpenseService:
     def get_expenses(self,db: Session ) -> List[Expense]: #Posibilidad de añadir parametros de control

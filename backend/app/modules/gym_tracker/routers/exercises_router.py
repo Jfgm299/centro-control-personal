@@ -1,12 +1,12 @@
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from ...schemas import ExerciseResponse
-from ...core.database import get_db
+from ..schemas import ExerciseResponse
+from ....core.database import get_db
 from typing import List
 
-from ...services import exercise_service
-from ...schemas import ExerciseCreate, ExerciseResponse, ExerciseDetailResponse
+from ..services import exercise_service
+from ..schemas import ExerciseCreate, ExerciseResponse, ExerciseDetailResponse
 
 router = APIRouter(prefix="/workouts", tags=["exercises"])
 

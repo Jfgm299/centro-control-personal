@@ -1,11 +1,10 @@
 from sqlalchemy.orm import Session
 from typing import Optional
-from datetime import datetime, timezone
 
-from ...models.gym_track.exercise import Exercise
-from ...models.gym_track.workout import Workout
-from ...schemas.gym_track.exercise import ExerciseCreate, ExerciseDetailResponse, SetResponse
-from ...exceptions import ExerciseNotFoundError, WorkoutNotFoundError, WorkoutAlreadyEndedError, ExerciseNotInWorkoutError
+from ..models import Exercise
+from ..models import Workout
+from ..schemas import ExerciseCreate, ExerciseDetailResponse, SetResponse
+from ..exceptions import ExerciseNotFoundError, WorkoutNotFoundError, WorkoutAlreadyEndedError, ExerciseNotInWorkoutError
 
 
 class ExerciseService:

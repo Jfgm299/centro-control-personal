@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, Float, String, DateTime, Enum
 from sqlalchemy.sql import func
-from ....core.database import Base
-from ..enums import ExpenseCategory
-
+from ...core.database import Base
+from .enums import ExpenseCategory
 
 class Expense(Base):
     __tablename__ = "expenses"

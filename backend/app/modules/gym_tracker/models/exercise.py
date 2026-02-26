@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum
-from ...core.database import Base
-from ...enums import GymSetType
+from ....core.database import Base
+from ..enums import GymSetType
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 

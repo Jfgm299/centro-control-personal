@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, Enum, ForeignKey
-from ...core.database import Base
-from ...enums import MuscleGroupCategory
+from ....core.database import Base
+from ..enums import MuscleGroupCategory
 from sqlalchemy.orm import relationship
 
 class WorkoutMuscleGroup(Base):

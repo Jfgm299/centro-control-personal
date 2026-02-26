@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from typing import List
 
-from ...models.gym_track.body_measurement import BodyMeasurement
-from ...schemas.gym_track.body_measurements import BodyMeasurementCreate,BodyMeasurementResponse
-from ...exceptions import BodyMeasureNotFound
+from ..models import BodyMeasurement
+from ..schemas import BodyMeasurementCreate
+from ..exceptions import BodyMeasureNotFound
 
 class BodyMeasureService:
     def get_all(self,db: Session) -> List[BodyMeasurement]:

@@ -2,12 +2,12 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime, timezone
 
-from ...models.gym_track.workout import Workout
-from ...models.gym_track.workout_muscle_group import WorkoutMuscleGroup
-from ...schemas.gym_track.workout import WorkoutCreate, WorkoutEnd, WorkoutDetailResponse
-from ...schemas.gym_track.exercise import ExerciseDetailResponse
-from ...schemas.gym_track.set import SetResponse
-from ...exceptions import WorkoutAlreadyEndedError, WorkoutNotFoundError, WorkoutAlreadyActiveError
+from ..models import Workout
+from ..models import WorkoutMuscleGroup
+from ..schemas import WorkoutCreate, WorkoutEnd, WorkoutDetailResponse
+from ..schemas import ExerciseDetailResponse
+from ..schemas import SetResponse
+from ..exceptions import WorkoutAlreadyEndedError, WorkoutNotFoundError, WorkoutAlreadyActiveError
 
 
 class WorkoutService:

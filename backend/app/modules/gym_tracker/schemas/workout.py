@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional, List
-from ...enums import MuscleGroupCategory
+from ..enums import MuscleGroupCategory
 from .exercise import ExerciseDetailResponse
 
 class WorkoutCreate(BaseModel):

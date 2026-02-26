@@ -1,6 +1,6 @@
 from sqlalchemy import Integer, Text, Column, Float, DateTime
 from sqlalchemy.sql import func
-from ...core.database import Base
+from ....core.database import Base
 
 class BodyMeasurement(Base):
     __tablename__ = 'body_measurements'

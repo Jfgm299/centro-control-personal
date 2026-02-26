@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, Text, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from ...core.database import Base
+from ....core.database import Base
 
 class Workout(Base):
     __tablename__ = 'workouts'

@@ -1,9 +1,9 @@
 # routers/gym_track/workouts.py
-from ...services import workout_service
+from ..services import workout_service
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from ...schemas import WorkoutCreate, WorkoutResponse, WorkoutEnd, WorkoutDetailResponse
-from ...core.database import get_db
+from ..schemas import WorkoutCreate, WorkoutResponse, WorkoutEnd, WorkoutDetailResponse
+from ....core.database import get_db
 from typing import List
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
