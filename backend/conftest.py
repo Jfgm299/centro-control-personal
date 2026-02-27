@@ -1,6 +1,7 @@
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from app.core import Base, get_db
 from app.main import app
@@ -9,67 +10,113 @@ SQLALCHEMY_TEST_DATABASE_URL = "postgresql://test:test@db_test:5432/test_db"
 engine = create_engine(SQLALCHEMY_TEST_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+TRUNCATE_SQL = text("""
+    TRUNCATE TABLE
+        gym_tracker.sets,
+        gym_tracker.exercises,
+        gym_tracker.workout_muscle_groups,
+        gym_tracker.workouts,
+        gym_tracker.body_measurements,
+        expenses_tracker.expenses,
+        core.users
+    RESTART IDENTITY CASCADE
+""")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def fast_password_hashing():
+    """Reduce bcrypt rounds de 12 a 4 — ~256x más rápido en tests"""
+    from unittest.mock import patch
+    import bcrypt
+    with patch("bcrypt.gensalt", return_value=bcrypt.gensalt(rounds=4)):
+        yield
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_database():
+    with engine.begin() as conn:
+        conn.execute(text("DROP SCHEMA IF EXISTS core CASCADE"))
+        conn.execute(text("DROP SCHEMA IF EXISTS expenses_tracker CASCADE"))
+        conn.execute(text("DROP SCHEMA IF EXISTS gym_tracker CASCADE"))
+        conn.execute(text("CREATE SCHEMA core"))
+        conn.execute(text("CREATE SCHEMA expenses_tracker"))
+        conn.execute(text("CREATE SCHEMA gym_tracker"))
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+    with engine.begin() as conn:
+        conn.execute(text("DROP SCHEMA IF EXISTS core CASCADE"))
+        conn.execute(text("DROP SCHEMA IF EXISTS expenses_tracker CASCADE"))
+        conn.execute(text("DROP SCHEMA IF EXISTS gym_tracker CASCADE"))
+
 
 @pytest.fixture(scope="function")
-def db():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+def db(setup_database):
     db = TestingSessionLocal()
     try:
         yield db
     finally:
         db.close()
-        Base.metadata.drop_all(bind=engine)
+        with engine.begin() as conn:
+            conn.execute(TRUNCATE_SQL)
 
 
-@pytest.fixture(scope="function")
-def client(db):
+def make_db_override(db):
     def override_get_db():
         try:
             yield db
         finally:
             pass
-    app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
-        yield test_client
+    return override_get_db
+
+
+@pytest.fixture(scope="function")
+def client(db):
+    """Client SIN token — para tests de auth"""
+    app.dependency_overrides[get_db] = make_db_override(db)
+    with TestClient(app) as c:
+        yield c
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
-def auth_client(client):
-    """Client autenticado con usuario de test"""
-    # Registrar usuario
-    client.post("/api/v1/auth/register", json={
-        "email": "test@test.com",
-        "username": "testuser",
-        "password": "testpassword"
-    })
-    # Login
-    response = client.post("/api/v1/auth/login", json={
-        "email": "test@test.com",
-        "password": "testpassword"
-    })
-    token = response.json()["access_token"]
-    client.headers.update({"Authorization": f"Bearer {token}"})
-    return client
+def auth_client(db):
+    """Client autenticado con usuario principal"""
+    app.dependency_overrides[get_db] = make_db_override(db)
+    with TestClient(app) as c:
+        c.post("/api/v1/auth/register", json={
+            "email": "test@test.com",
+            "username": "testuser",
+            "password": "testpassword"
+        })
+        response = c.post("/api/v1/auth/login", json={
+            "email": "test@test.com",
+            "password": "testpassword"
+        })
+        token = response.json()["access_token"]
+        c.headers.update({"Authorization": f"Bearer {token}"})
+        yield c
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
-def other_auth_client(client):
-    """Client autenticado con un segundo usuario — para tests de ownership"""
-    client2 = TestClient(app)
-    client2.post("/api/v1/auth/register", json={
-        "email": "other@test.com",
-        "username": "otheruser",
-        "password": "testpassword"
-    })
-    response = client2.post("/api/v1/auth/login", json={
-        "email": "other@test.com",
-        "password": "testpassword"
-    })
-    token = response.json()["access_token"]
-    client2.headers.update({"Authorization": f"Bearer {token}"})
-    return client2
+def other_auth_client(db):
+    """Client autenticado con segundo usuario — para tests de ownership"""
+    app.dependency_overrides[get_db] = make_db_override(db)
+    with TestClient(app) as c:
+        c.post("/api/v1/auth/register", json={
+            "email": "other@test.com",
+            "username": "otheruser",
+            "password": "testpassword"
+        })
+        response = c.post("/api/v1/auth/login", json={
+            "email": "other@test.com",
+            "password": "testpassword"
+        })
+        token = response.json()["access_token"]
+        c.headers.update({"Authorization": f"Bearer {token}"})
+        yield c
+    app.dependency_overrides.clear()
 
 
 # ==================== SAMPLE DATA ====================
