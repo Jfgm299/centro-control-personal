@@ -1,5 +1,3 @@
-# app/core/config.py
-
 from pydantic_settings import BaseSettings
 from pydantic import ConfigDict
 from typing import List
@@ -9,7 +7,7 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str
 
-    # Modules - ← AQUÍ CONTROLAS QUÉ ESTÁ ACTIVO
+    # Modules
     INSTALLED_MODULES: List[str] = [
         "expenses_tracker",
         "gym_tracker",
@@ -21,9 +19,10 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # Auth
-    SECRET_KEY: str                           # sin default → obligatoria en .env
-    ALGORITHM: str = "HS256"                  # default seguro, raramente cambia
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440   # 24h
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15    # ← bajado a 15 minutos
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30      # ← nuevo
 
     model_config = ConfigDict(
         env_file=".env",

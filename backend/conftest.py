@@ -18,6 +18,7 @@ TRUNCATE_SQL = text("""
         gym_tracker.workouts,
         gym_tracker.body_measurements,
         expenses_tracker.expenses,
+        core.refresh_tokens,
         core.users
     RESTART IDENTITY CASCADE
 """)
@@ -26,7 +27,6 @@ TRUNCATE_SQL = text("""
 @pytest.fixture(scope="session", autouse=True)
 def fast_password_hashing():
     """Reduce bcrypt rounds de 12 a 4 — ~256x más rápido en tests"""
-    from unittest.mock import patch
     import bcrypt
     with patch("bcrypt.gensalt", return_value=bcrypt.gensalt(rounds=4)):
         yield
@@ -95,6 +95,27 @@ def auth_client(db):
         })
         token = response.json()["access_token"]
         c.headers.update({"Authorization": f"Bearer {token}"})
+        yield c
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def auth_client_with_refresh(db):
+    """Client autenticado que también expone el refresh_token"""
+    app.dependency_overrides[get_db] = make_db_override(db)
+    with TestClient(app) as c:
+        c.post("/api/v1/auth/register", json={
+            "email": "test@test.com",
+            "username": "testuser",
+            "password": "testpassword"
+        })
+        response = c.post("/api/v1/auth/login", json={
+            "email": "test@test.com",
+            "password": "testpassword"
+        })
+        data = response.json()
+        c.headers.update({"Authorization": f"Bearer {data['access_token']}"})
+        c.refresh_token = data["refresh_token"]
         yield c
     app.dependency_overrides.clear()
 
