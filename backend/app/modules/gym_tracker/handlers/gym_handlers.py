@@ -1,6 +1,6 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from ...exceptions import WorkoutAlreadyEndedError, WorkoutNotFoundError, WorkoutAlreadyActiveError, ExerciseNotFoundError, ExerciseNotInWorkoutError, SetNotInExerciseError, SetNotFoundError, SetTypeMismatchError, BodyMeasureNotFound
+from ..exceptions import WorkoutAlreadyEndedError, WorkoutNotFoundError, WorkoutAlreadyActiveError, ExerciseNotFoundError, ExerciseNotInWorkoutError, SetNotInExerciseError, SetNotFoundError, SetTypeMismatchError, BodyMeasureNotFound
 
 async def workout_already_ended_handler(request: Request, exc: WorkoutAlreadyEndedError):
     return JSONResponse(

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html
 from .core import engine, Base, settings
+from app.core import auth
 from .modules.gym_tracker.handlers import register_exception_handlers
 from importlib import import_module
 
@@ -9,7 +10,8 @@ if __name__ == '__main__':
     Base.metadata.create_all(bind=engine)
 
 # ── Cargar módulos y recoger tags dinámicamente ──────────────────────────────
-loaded_modules = []
+loaded_modules = [('auth',auth)]
+
 for module_name in settings.INSTALLED_MODULES:
     try:
         mod = import_module(f'app.modules.{module_name}')
