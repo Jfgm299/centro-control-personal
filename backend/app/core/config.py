@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Centro Control"
     DEBUG: bool = False
 
+    # Auth
+    SECRET_KEY: str                           # sin default → obligatoria en .env
+    ALGORITHM: str = "HS256"                  # default seguro, raramente cambia
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440   # 24h
+
     model_config = ConfigDict(
         env_file=".env",
         case_sensitive=True,
