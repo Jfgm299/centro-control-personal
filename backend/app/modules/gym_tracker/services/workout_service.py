@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime, timezone
-
 from ..models.workout import Workout
 from ..models.workout_muscle_group import WorkoutMuscleGroup
 from ..schemas import WorkoutCreate, WorkoutEnd, WorkoutDetailResponse
@@ -9,64 +8,56 @@ from ..schemas import ExerciseDetailResponse
 from ..schemas import SetResponse
 from ..exceptions import WorkoutAlreadyEndedError, WorkoutNotFoundError, WorkoutAlreadyActiveError
 
-
 class WorkoutService:
 
-    def start_workout(self, db: Session, data: WorkoutCreate) -> Workout:
-        """Iniciar un nuevo workout"""
-        active_workout = db.query(Workout).filter(Workout.ended_at == None).first()
+    def start_workout(self, db: Session, data: WorkoutCreate, user_id: int) -> Workout:
+        active_workout = db.query(Workout).filter(
+            Workout.ended_at == None,
+            Workout.user_id == user_id
+        ).first()
         if active_workout:
             raise WorkoutAlreadyActiveError(active_workout.id)
-
-        workout = Workout(notes=data.notes)
+        workout = Workout(notes=data.notes, user_id=user_id)
         db.add(workout)
         db.flush()
-
         for muscle_group_str in data.muscle_groups:
-            mg = WorkoutMuscleGroup(
-                workout_id=workout.id,
-                muscle_group=muscle_group_str
-            )
+            mg = WorkoutMuscleGroup(workout_id=workout.id, muscle_group=muscle_group_str)
             db.add(mg)
-
         db.commit()
         db.refresh(workout)
         return workout
 
-    def end_workout(self, db: Session, workout_id: int, data: WorkoutEnd) -> Optional[Workout]:
-        workout = db.query(Workout).filter(Workout.id == workout_id).first()
-
+    def end_workout(self, db: Session, workout_id: int, data: WorkoutEnd, user_id: int) -> Optional[Workout]:
+        workout = db.query(Workout).filter(
+            Workout.id == workout_id,
+            Workout.user_id == user_id
+        ).first()
         if not workout:
             raise WorkoutNotFoundError(workout_id)
         if workout.ended_at:
             raise WorkoutAlreadyEndedError(workout_id)
-
         now = datetime.now(timezone.utc)
         workout.ended_at = now
-
-        # ← compatibilidad con SQLite (timezone-naive) y PostgreSQL (timezone-aware)
         started_at = workout.started_at
         if started_at.tzinfo is None:
             started_at = started_at.replace(tzinfo=timezone.utc)
-
         duration = (now - started_at).total_seconds()
         workout.duration_minutes = int(duration / 60)
         workout.total_exercises = len(workout.exercises)
         workout.total_sets = sum(len(exercise.sets) for exercise in workout.exercises)
-
         if data.notes:
             workout.notes = data.notes
-
         db.commit()
         db.refresh(workout)
         return workout
 
-    def get_by_id(self, db: Session, workout_id: int) -> Optional[dict]:
-        """Obtener workout por ID"""
-        workout = db.query(Workout).filter(Workout.id == workout_id).first()
+    def get_by_id(self, db: Session, workout_id: int, user_id: int) -> Optional[dict]:
+        workout = db.query(Workout).filter(
+            Workout.id == workout_id,
+            Workout.user_id == user_id
+        ).first()
         if not workout:
             raise WorkoutNotFoundError(workout_id)
-
         return {
             "id": workout.id,
             "started_at": workout.started_at,
@@ -78,10 +69,10 @@ class WorkoutService:
             "muscle_groups": [mg.muscle_group.value for mg in workout.muscle_groups]
         }
 
-    def get_all(self, db: Session, skip: int = 0, limit: int = 50) -> List[dict]:
-        """Listar workouts"""
-        workouts = db.query(Workout).offset(skip).limit(limit).all()
-
+    def get_all(self, db: Session, user_id: int, skip: int = 0, limit: int = 50) -> List[dict]:
+        workouts = db.query(Workout).filter(
+            Workout.user_id == user_id
+        ).offset(skip).limit(limit).all()
         return [
             {
                 "id": w.id,
@@ -96,12 +87,13 @@ class WorkoutService:
             for w in workouts
         ]
 
-    def get_by_id_with_details(self, db: Session, workout_id: int) -> Optional[WorkoutDetailResponse]:
-        """Obtener workout completo con ejercicios y sets"""
-        workout = db.query(Workout).filter(Workout.id == workout_id).first()
+    def get_by_id_with_details(self, db: Session, workout_id: int, user_id: int) -> Optional[WorkoutDetailResponse]:
+        workout = db.query(Workout).filter(
+            Workout.id == workout_id,
+            Workout.user_id == user_id
+        ).first()
         if not workout:
             raise WorkoutNotFoundError(workout_id)
-
         return WorkoutDetailResponse(
             id=workout.id,
             started_at=workout.started_at,
@@ -116,7 +108,7 @@ class WorkoutService:
                     id=ex.id,
                     workout_id=ex.workout_id,
                     name=ex.name,
-                    exercise_type=ex.exercise_type,  # ← añadido
+                    exercise_type=ex.exercise_type,
                     order=ex.order,
                     notes=ex.notes,
                     created_at=ex.created_at,
@@ -139,15 +131,15 @@ class WorkoutService:
             ]
         )
 
-    def delete_workout(self, db: Session, workout_id: int) -> bool:
-        """Eliminar workout"""
-        workout_db = db.query(Workout).filter(Workout.id == workout_id).first()
+    def delete_workout(self, db: Session, workout_id: int, user_id: int) -> bool:
+        workout_db = db.query(Workout).filter(
+            Workout.id == workout_id,
+            Workout.user_id == user_id
+        ).first()
         if not workout_db:
             raise WorkoutNotFoundError(workout_id)
-
         db.delete(workout_db)
         db.commit()
         return True
-
 
 workout_service = WorkoutService()
