@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import secrets
 import bcrypt
 from jose import JWTError, jwt
 from app.core.config import settings
@@ -24,3 +25,12 @@ def decode_token(token: str) -> dict | None:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:
         return None
+
+
+def create_refresh_token() -> str:
+    """Token opaco aleatorio — no JWT, se guarda en BD"""
+    return secrets.token_urlsafe(64)
+
+
+def get_refresh_token_expiry() -> datetime:
+    return datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
