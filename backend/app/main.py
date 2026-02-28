@@ -83,6 +83,11 @@ def root():
 def health_check():
     return {"status": "healthy"}
 
+@app.get("/api/v1/modules")
+def get_modules():
+    """Devuelve los módulos activos en el backend."""
+    return {"modules": settings.INSTALLED_MODULES}
+
 @app.get("/redoc", include_in_schema=False)
 def redoc_html():
     return get_redoc_html(
