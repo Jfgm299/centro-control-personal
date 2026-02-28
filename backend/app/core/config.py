@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     INSTALLED_MODULES: List[str] = [
         "expenses_tracker",
         "gym_tracker",
+        "flights_tracker"
     ]
 
     # API
@@ -23,6 +24,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15    # ← bajado a 15 minutos
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30      # ← nuevo
+
+    # AeroDataBox for flights_tracker
+    AERODATABOX_API_KEY: str
+    AERODATABOX_BASE_URL: str = "https://aerodatabox.p.rapidapi.com"
+    AERODATABOX_HOST: str = "aerodatabox.p.rapidapi.com"
 
     model_config = ConfigDict(
         env_file=".env",
