@@ -61,7 +61,7 @@ class TestGetBodyMeasurements:
         item = response.json()[0]
         assert "id" in item
         assert "weight_kg" in item
-        assert "body_fat_percent" in item
+        assert "body_fat_percentage" in item
         assert "notes" in item
         assert "created_at" in item
 
@@ -76,13 +76,13 @@ class TestGetBodyMeasurements:
 class TestCreateBodyMeasurement:
 
     def test_create_measurement_success(self, auth_client):
-        data = {"weight_kg": 75.0, "body_fat_percent": 15.0, "notes": "Morning"}
+        data = {"weight_kg": 75.0, "body_fat_percentage": 15.0, "notes": "Morning"}
         response = auth_client.post("/api/v1/body-measures/", json=data)
         assert response.status_code == 201
         body = response.json()
         assert body["id"] is not None
         assert body["weight_kg"] == 75.0
-        assert body["body_fat_percent"] == 15.0
+        assert body["body_fat_percentage"] == 15.0
         assert body["notes"] == "Morning"
         assert body["created_at"] is not None
 
@@ -91,30 +91,30 @@ class TestCreateBodyMeasurement:
         assert response.status_code == 201
         body = response.json()
         assert body["weight_kg"] == 80.0
-        assert body["body_fat_percent"] is None
+        assert body["body_fat_percentage"] is None
         assert body["notes"] is None
 
     def test_create_measurement_without_notes(self, auth_client):
-        response = auth_client.post("/api/v1/body-measures/", json={"weight_kg": 70.0, "body_fat_percent": 12.0})
+        response = auth_client.post("/api/v1/body-measures/", json={"weight_kg": 70.0, "body_fat_percentage": 12.0})
         assert response.status_code == 201
         assert response.json()["notes"] is None
 
     def test_create_measurement_zero_body_fat(self, auth_client):
-        response = auth_client.post("/api/v1/body-measures/", json={"weight_kg": 70.0, "body_fat_percent": 0.0})
+        response = auth_client.post("/api/v1/body-measures/", json={"weight_kg": 70.0, "body_fat_percentage": 0.0})
         assert response.status_code == 201
-        assert response.json()["body_fat_percent"] == 0.0
+        assert response.json()["body_fat_percentage"] == 0.0
 
     def test_create_measurement_max_body_fat(self, auth_client):
-        response = auth_client.post("/api/v1/body-measures/", json={"weight_kg": 70.0, "body_fat_percent": 100.0})
+        response = auth_client.post("/api/v1/body-measures/", json={"weight_kg": 70.0, "body_fat_percentage": 100.0})
         assert response.status_code == 201
-        assert response.json()["body_fat_percent"] == 100.0
+        assert response.json()["body_fat_percentage"] == 100.0
 
     def test_create_measurement_body_fat_above_100_fails(self, auth_client):
-        response = auth_client.post("/api/v1/body-measures/", json={"weight_kg": 70.0, "body_fat_percent": 101.0})
+        response = auth_client.post("/api/v1/body-measures/", json={"weight_kg": 70.0, "body_fat_percentage": 101.0})
         assert response.status_code == 422
 
     def test_create_measurement_negative_body_fat_fails(self, auth_client):
-        response = auth_client.post("/api/v1/body-measures/", json={"weight_kg": 70.0, "body_fat_percent": -1.0})
+        response = auth_client.post("/api/v1/body-measures/", json={"weight_kg": 70.0, "body_fat_percentage": -1.0})
         assert response.status_code == 422
 
     def test_create_measurement_zero_weight_fails(self, auth_client):
@@ -126,7 +126,7 @@ class TestCreateBodyMeasurement:
         assert response.status_code == 422
 
     def test_create_measurement_missing_weight_fails(self, auth_client):
-        response = auth_client.post("/api/v1/body-measures/", json={"body_fat_percent": 15.0})
+        response = auth_client.post("/api/v1/body-measures/", json={"body_fat_percentage": 15.0})
         assert response.status_code == 422
 
     def test_create_measurement_decimal_weight(self, auth_client):
@@ -163,19 +163,19 @@ class TestGetBodyMeasurementById:
         body = response.json()
         assert "id" in body
         assert "weight_kg" in body
-        assert "body_fat_percent" in body
+        assert "body_fat_percentage" in body
         assert "notes" in body
         assert "created_at" in body
 
     def test_get_measurement_correct_data(self, auth_client):
         created = auth_client.post("/api/v1/body-measures/", json={
-            "weight_kg": 72.5, "body_fat_percent": 14.0, "notes": "Post workout"
+            "weight_kg": 72.5, "body_fat_percentage": 14.0, "notes": "Post workout"
         })
         mid = created.json()["id"]
         response = auth_client.get(f"/api/v1/body-measures/{mid}")
         body = response.json()
         assert body["weight_kg"] == 72.5
-        assert body["body_fat_percent"] == 14.0
+        assert body["body_fat_percentage"] == 14.0
         assert body["notes"] == "Post workout"
 
 
