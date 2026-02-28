@@ -1,10 +1,17 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
+from datetime import date, timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from app.core import Base, get_db
 from app.main import app
+
+from app.modules.flights_tracker.exceptions import (
+    FlightNotFoundInAPIError,
+    AeroDataBoxTimeoutError,
+    AeroDataBoxRateLimitError,
+)
 
 SQLALCHEMY_TEST_DATABASE_URL = "postgresql://test:test@db_test:5432/test_db"
 engine = create_engine(SQLALCHEMY_TEST_DATABASE_URL)
@@ -18,6 +25,7 @@ TRUNCATE_SQL = text("""
         gym_tracker.workouts,
         gym_tracker.body_measurements,
         expenses_tracker.expenses,
+        flights_tracker.flights,
         core.refresh_tokens,
         core.users
     RESTART IDENTITY CASCADE
@@ -38,9 +46,11 @@ def setup_database():
         conn.execute(text("DROP SCHEMA IF EXISTS core CASCADE"))
         conn.execute(text("DROP SCHEMA IF EXISTS expenses_tracker CASCADE"))
         conn.execute(text("DROP SCHEMA IF EXISTS gym_tracker CASCADE"))
+        conn.execute(text("DROP SCHEMA IF EXISTS flights_tracker CASCADE"))
         conn.execute(text("CREATE SCHEMA core"))
         conn.execute(text("CREATE SCHEMA expenses_tracker"))
         conn.execute(text("CREATE SCHEMA gym_tracker"))
+        conn.execute(text("CREATE SCHEMA flights_tracker"))
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
@@ -48,6 +58,7 @@ def setup_database():
         conn.execute(text("DROP SCHEMA IF EXISTS core CASCADE"))
         conn.execute(text("DROP SCHEMA IF EXISTS expenses_tracker CASCADE"))
         conn.execute(text("DROP SCHEMA IF EXISTS gym_tracker CASCADE"))
+        conn.execute(text("DROP SCHEMA IF EXISTS flights_tracker CASCADE"))
 
 
 @pytest.fixture(scope="function")
@@ -173,7 +184,7 @@ def sample_body_measurement_data():
     return {"weight_kg": 75.0, "body_fat_percent": 15.0, "notes": "Morning measurement"}
 
 
-# ==================== FIXTURES COMPUESTOS ====================
+# ==================== FIXTURES COMPUESTOS (gym / expenses) ====================
 
 @pytest.fixture
 def active_workout_id(auth_client):
@@ -222,3 +233,197 @@ def body_measurement_id(auth_client, sample_body_measurement_data):
     response = auth_client.post("/api/v1/body-measures/", json=sample_body_measurement_data)
     assert response.status_code == 201, response.json()
     return response.json()["id"]
+
+
+# ==================== FLIGHTS TRACKER — MOCK DATA ====================
+
+MOCK_FLIGHT_RAW = {
+    "number": "VY1234",
+    "status": "Arrived",
+    "greatCircleDistance": {
+        "km": 621.5, "mile": 386.2, "nm": 335.6, "meter": 621500, "feet": 2038700
+    },
+    "departure": {
+        "airport": {
+            "iata": "MAD", "icao": "LEMD", "name": "Madrid Barajas",
+            "municipalityName": "Madrid", "countryCode": "ES",
+            "timeZone": "Europe/Madrid",
+            "location": {"lat": 40.4719, "lon": -3.5626}
+        },
+        "scheduledTime": {"local": "2025-06-15 10:00+02:00", "utc": "2025-06-15 08:00Z"},
+        "runwayTime": {"local": "2025-06-15 10:18+02:00"},
+        "terminal": "T4", "gate": "B22",
+        "quality": ["Basic", "Live"]
+    },
+    "arrival": {
+        "airport": {
+            "iata": "BCN", "icao": "LEBL", "name": "Barcelona El Prat",
+            "municipalityName": "Barcelona", "countryCode": "ES",
+            "timeZone": "Europe/Madrid",
+            "location": {"lat": 41.2971, "lon": 2.0785}
+        },
+        "scheduledTime": {"local": "2025-06-15 11:15+02:00"},
+        "runwayTime": {"local": "2025-06-15 11:22+02:00"},
+        "terminal": "T1", "baggageBelt": "5",
+        "quality": ["Basic", "Live"]
+    },
+    "airline": {"iata": "VY", "icao": "VLG", "name": "Vueling"},
+    "aircraft": {"model": "Airbus A320", "reg": "EC-MGY", "modeS": "3443C2"},
+    "lastUpdatedUtc": "2025-06-15T09:30:00Z",
+    "codeshareStatus": "IsOperator",
+    "isCargo": False
+}
+
+# Mock para vuelos futuros: sin runwayTime ni scheduledTime pasadas,
+# para que _is_past() devuelva False correctamente.
+def _make_future_mock_raw():
+    future_local = (date.today() + timedelta(days=30)).strftime("%Y-%m-%d") + " 10:00+02:00"
+    future_arr   = (date.today() + timedelta(days=30)).strftime("%Y-%m-%d") + " 11:15+02:00"
+    return {
+        "number": "VY1234",
+        "status": "Expected",
+        "greatCircleDistance": {
+            "km": 621.5, "mile": 386.2, "nm": 335.6, "meter": 621500, "feet": 2038700
+        },
+        "departure": {
+            "airport": {
+                "iata": "MAD", "icao": "LEMD", "name": "Madrid Barajas",
+                "municipalityName": "Madrid", "countryCode": "ES",
+                "timeZone": "Europe/Madrid",
+                "location": {"lat": 40.4719, "lon": -3.5626}
+            },
+            "scheduledTime": {"local": future_local},
+            "terminal": "T4", "gate": "B22",
+            "quality": ["Basic"]
+        },
+        "arrival": {
+            "airport": {
+                "iata": "BCN", "icao": "LEBL", "name": "Barcelona El Prat",
+                "municipalityName": "Barcelona", "countryCode": "ES",
+                "timeZone": "Europe/Madrid",
+                "location": {"lat": 41.2971, "lon": 2.0785}
+            },
+            "scheduledTime": {"local": future_arr},
+            "terminal": "T1",
+            "quality": ["Basic"]
+        },
+        "airline": {"iata": "VY", "icao": "VLG", "name": "Vueling"},
+        "aircraft": {"model": "Airbus A320", "reg": "EC-MGY", "modeS": "3443C2"},
+        "lastUpdatedUtc": "2026-02-28T09:30:00Z",
+        "codeshareStatus": "IsOperator",
+        "isCargo": False
+    }
+
+
+# ==================== FLIGHTS TRACKER — MOCK FIXTURES ====================
+
+@pytest.fixture
+def mock_aerodatabox():
+    """Parchea AeroDataBoxClient.get_flight para devolver MOCK_FLIGHT_RAW"""
+    with patch(
+        "app.modules.flights_tracker.aerodatabox_client.AeroDataBoxClient.get_flight",
+        new_callable=AsyncMock,
+        return_value=MOCK_FLIGHT_RAW
+    ):
+        yield
+
+
+@pytest.fixture
+def mock_aerodatabox_not_found():
+    """Parchea get_flight para lanzar FlightNotFoundInAPIError"""
+    with patch(
+        "app.modules.flights_tracker.aerodatabox_client.AeroDataBoxClient.get_flight",
+        new_callable=AsyncMock,
+        side_effect=FlightNotFoundInAPIError("XX9999", "2025-06-15")
+    ):
+        yield
+
+
+@pytest.fixture
+def mock_aerodatabox_timeout():
+    """Parchea get_flight para lanzar AeroDataBoxTimeoutError"""
+    with patch(
+        "app.modules.flights_tracker.aerodatabox_client.AeroDataBoxClient.get_flight",
+        new_callable=AsyncMock,
+        side_effect=AeroDataBoxTimeoutError()
+    ):
+        yield
+
+
+@pytest.fixture
+def mock_aerodatabox_rate_limit():
+    """Parchea get_flight para lanzar AeroDataBoxRateLimitError"""
+    with patch(
+        "app.modules.flights_tracker.aerodatabox_client.AeroDataBoxClient.get_flight",
+        new_callable=AsyncMock,
+        side_effect=AeroDataBoxRateLimitError()
+    ):
+        yield
+
+
+@pytest.fixture
+def mock_aerodatabox_future():
+    """Parchea get_flight para devolver un vuelo futuro (sin tiempos reales pasados)"""
+    with patch(
+        "app.modules.flights_tracker.aerodatabox_client.AeroDataBoxClient.get_flight",
+        new_callable=AsyncMock,
+        return_value=_make_future_mock_raw()
+    ):
+        yield
+
+
+# ==================== FLIGHTS TRACKER — SAMPLE DATA ====================
+
+@pytest.fixture
+def past_flight_data():
+    return {
+        "flight_number": "VY1234",
+        "flight_date": "2025-06-15",
+    }
+
+
+@pytest.fixture
+def future_flight_data():
+    future_date = (date.today() + timedelta(days=30)).isoformat()
+    return {
+        "flight_number": "VY1234",
+        "flight_date": future_date,
+    }
+
+
+# ==================== FLIGHTS TRACKER — FIXTURES COMPUESTOS ====================
+
+@pytest.fixture
+def created_flight_id(auth_client, mock_aerodatabox, past_flight_data):
+    """Crea un vuelo pasado en BD y retorna su id"""
+    response = auth_client.post("/api/v1/flights/", json=past_flight_data)
+    assert response.status_code == 201, response.json()
+    return response.json()["id"]
+
+
+@pytest.fixture
+def future_flight_id(auth_client, mock_aerodatabox_future, future_flight_data):
+    """Crea un vuelo futuro en BD y retorna su id"""
+    response = auth_client.post("/api/v1/flights/", json=future_flight_data)
+    assert response.status_code == 201, response.json()
+    return response.json()["id"]
+
+
+@pytest.fixture
+def multiple_flights(auth_client, mock_aerodatabox):
+    """Crea 5 vuelos pasados en BD para tests del pasaporte"""
+    # Fechas dentro del rango ±1 año desde hoy (28 Feb 2026)
+    past_dates = [
+        (date.today() - timedelta(days=30)).isoformat(),
+        (date.today() - timedelta(days=60)).isoformat(),
+        (date.today() - timedelta(days=90)).isoformat(),
+        (date.today() - timedelta(days=120)).isoformat(),
+        (date.today() - timedelta(days=150)).isoformat(),
+    ]
+    flight_numbers = ["VY1234", "IB3456", "VY5678", "FR9012", "IB7890"]
+    ids = []
+    for fn, fd in zip(flight_numbers, past_dates):
+        response = auth_client.post("/api/v1/flights/", json={"flight_number": fn, "flight_date": fd})
+        assert response.status_code == 201, response.json()
+        ids.append(response.json()["id"])
+    return ids

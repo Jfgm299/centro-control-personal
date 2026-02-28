@@ -10,6 +10,7 @@ if config.config_file_name is not None:
 from app.core import Base
 from app.modules.expenses_tracker import expense
 from app.modules.gym_tracker.models import *
+from app.modules.flights_tracker.flight import Flight   # ← nuevo
 from app.core.auth.user import User
 
 target_metadata = Base.metadata
@@ -38,6 +39,7 @@ def run_migrations_online() -> None:
         connection.execute(text("CREATE SCHEMA IF NOT EXISTS gym_tracker"))
         connection.execute(text("CREATE SCHEMA IF NOT EXISTS expenses_tracker"))
         connection.execute(text("CREATE SCHEMA IF NOT EXISTS core"))
+        connection.execute(text("CREATE SCHEMA IF NOT EXISTS flights_tracker"))  # ← nuevo
         connection.commit()
 
         context.configure(

@@ -19,3 +19,4 @@ class User(Base):
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")
     expenses = relationship("Expense", back_populates="user", cascade="all, delete-orphan")
     body_measurements = relationship("BodyMeasurement", back_populates="user", cascade="all, delete-orphan")
+    flights            = relationship("Flight", back_populates="user", cascade="all, delete-orphan")

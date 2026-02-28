@@ -3,14 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html
 from .core import engine, Base, settings
 from app.core import auth
-from .modules.gym_tracker.handlers import register_exception_handlers
+from .modules.gym_tracker.handlers import register_exception_handlers as register_gym_handlers
+from .modules.flights_tracker.handlers import register_exception_handlers as register_flights_handlers
 from importlib import import_module
 
 if __name__ == '__main__':
     Base.metadata.create_all(bind=engine)
 
 # ── Cargar módulos y recoger tags dinámicamente ──────────────────────────────
-loaded_modules = [('auth',auth)]
+loaded_modules = [('auth', auth)]
 
 for module_name in settings.INSTALLED_MODULES:
     try:
@@ -29,7 +30,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url=None,
     version="1.0.0",
-    openapi_tags=all_tags,  # ← lista plana, sin []
+    openapi_tags=all_tags,
 )
 
 # ── ReDoc con x-tagGroups ─────────────────────────────────────────────────────
@@ -57,7 +58,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
-register_exception_handlers(app)
+register_gym_handlers(app)
+register_flights_handlers(app)
 
 # ── Registrar routers ─────────────────────────────────────────────────────────
 for module_name, module in loaded_modules:
