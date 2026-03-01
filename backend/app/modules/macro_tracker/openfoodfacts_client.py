@@ -77,7 +77,7 @@ class OpenFoodFactsClient:
             "brand":              brand,
             "serving_size_text":  raw.get("serving_size"),
             "serving_quantity_g": raw.get("serving_quantity"),
-            "nutriscore":         raw.get("nutrition_grades"),
+            "nutriscore": self._parse_nutriscore(raw.get("nutrition_grades")),
             "image_url":          raw.get("image_front_small_url"),
             "categories":         ",".join(raw.get("categories_tags") or [])[:500] or None,
             "allergens":          ",".join(raw.get("allergens_tags") or [])[:300] or None,
@@ -103,3 +103,12 @@ class OpenFoodFactsClient:
             return float(value) if value is not None else None
         except (ValueError, TypeError):
             return None
+        
+    def _parse_nutriscore(self, value: str | None) -> str | None:
+        """Nutri-Score válido es una sola letra a-e. Cualquier otro valor (unknown, not-applicable...) → None."""
+        if not value:
+            return None
+        clean = value.strip().lower()
+        if clean in {"a", "b", "c", "d", "e"}:
+            return clean
+        return None

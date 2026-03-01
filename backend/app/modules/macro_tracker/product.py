@@ -23,7 +23,7 @@ class Product(Base):
     brand              = Column(String(100), nullable=True)
     serving_size_text  = Column(String(50), nullable=True)
     serving_quantity_g = Column(Float, nullable=True)
-    nutriscore         = Column(String(1), nullable=True)
+    nutriscore         = Column(String(10), nullable=True)
     image_url          = Column(String(500), nullable=True)
     categories         = Column(String(500), nullable=True)
     allergens          = Column(String(300), nullable=True)
