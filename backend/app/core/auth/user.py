@@ -20,3 +20,5 @@ class User(Base):
     expenses = relationship("Expense", back_populates="user", cascade="all, delete-orphan")
     body_measurements = relationship("BodyMeasurement", back_populates="user", cascade="all, delete-orphan")
     flights            = relationship("Flight", back_populates="user", cascade="all, delete-orphan")
+    diary_entries = relationship("DiaryEntry",back_populates="user",cascade="all, delete-orphan")
+    user_goal = relationship("UserGoal",back_populates="user",uselist=False,cascade="all, delete-orphan")

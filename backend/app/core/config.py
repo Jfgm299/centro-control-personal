@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     INSTALLED_MODULES: List[str] = [
         "expenses_tracker",
         "gym_tracker",
-        "flights_tracker"
+        "flights_tracker",
+        "macro_tracker",
     ]
 
     # API
@@ -29,6 +30,9 @@ class Settings(BaseSettings):
     AERODATABOX_API_KEY: str
     AERODATABOX_BASE_URL: str = "https://aerodatabox.p.rapidapi.com"
     AERODATABOX_HOST: str = "aerodatabox.p.rapidapi.com"
+
+    # OFF API for macro_tracker
+    OFF_BASE_URL: str = "https://world.openfoodfacts.org"
 
     model_config = ConfigDict(
         env_file=".env",

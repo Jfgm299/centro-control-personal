@@ -13,6 +13,11 @@ from app.modules.gym_tracker.models import *
 from app.modules.flights_tracker.flight import Flight   # ← nuevo
 from app.core.auth.user import User
 
+# Añade estas 3 líneas junto a los otros imports de módulos:
+from app.modules.macro_tracker.product import Product          # noqa: F401
+from app.modules.macro_tracker.diary_entry import DiaryEntry   # noqa: F401
+from app.modules.macro_tracker.user_goal import UserGoal       # noqa: F401
+
 target_metadata = Base.metadata
 
 
@@ -40,6 +45,7 @@ def run_migrations_online() -> None:
         connection.execute(text("CREATE SCHEMA IF NOT EXISTS expenses_tracker"))
         connection.execute(text("CREATE SCHEMA IF NOT EXISTS core"))
         connection.execute(text("CREATE SCHEMA IF NOT EXISTS flights_tracker"))  # ← nuevo
+        connection.execute(text("CREATE SCHEMA IF NOT EXISTS macro_tracker"))
         connection.commit()
 
         context.configure(

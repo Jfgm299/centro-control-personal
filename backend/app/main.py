@@ -5,6 +5,7 @@ from .core import engine, Base, settings
 from app.core import auth
 from .modules.gym_tracker.handlers import register_exception_handlers as register_gym_handlers
 from .modules.flights_tracker.handlers import register_exception_handlers as register_flights_handlers
+from .modules.macro_tracker.handlers import register_exception_handlers as register_macro_handlers
 from importlib import import_module
 
 if __name__ == '__main__':
@@ -60,6 +61,7 @@ app.add_middleware(
 )
 register_gym_handlers(app)
 register_flights_handlers(app)
+register_macro_handlers(app)
 
 # ── Registrar routers ─────────────────────────────────────────────────────────
 for module_name, module in loaded_modules:
