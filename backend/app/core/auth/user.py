@@ -22,3 +22,4 @@ class User(Base):
     flights            = relationship("Flight", back_populates="user", cascade="all, delete-orphan")
     diary_entries = relationship("DiaryEntry",back_populates="user",cascade="all, delete-orphan")
     user_goal = relationship("UserGoal",back_populates="user",uselist=False,cascade="all, delete-orphan")
+    trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan")
