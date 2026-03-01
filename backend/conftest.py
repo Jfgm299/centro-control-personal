@@ -13,6 +13,12 @@ from app.modules.flights_tracker.exceptions import (
     AeroDataBoxRateLimitError,
 )
 
+from app.modules.macro_tracker.exceptions import (
+    ProductNotFoundInAPIError,
+    OFFTimeoutError,
+    OFFRateLimitError,
+)
+
 SQLALCHEMY_TEST_DATABASE_URL = "postgresql://test:test@db_test:5432/test_db"
 engine = create_engine(SQLALCHEMY_TEST_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -26,6 +32,23 @@ TRUNCATE_SQL = text("""
         gym_tracker.body_measurements,
         expenses_tracker.expenses,
         flights_tracker.flights,
+        core.refresh_tokens,
+        core.users
+    RESTART IDENTITY CASCADE
+""")
+
+TRUNCATE_SQL = text("""
+    TRUNCATE TABLE
+        gym_tracker.sets,
+        gym_tracker.exercises,
+        gym_tracker.workout_muscle_groups,
+        gym_tracker.workouts,
+        gym_tracker.body_measurements,
+        expenses_tracker.expenses,
+        flights_tracker.flights,
+        macro_tracker.diary_entries,
+        macro_tracker.user_goals,
+        macro_tracker.products,
         core.refresh_tokens,
         core.users
     RESTART IDENTITY CASCADE
@@ -47,10 +70,12 @@ def setup_database():
         conn.execute(text("DROP SCHEMA IF EXISTS expenses_tracker CASCADE"))
         conn.execute(text("DROP SCHEMA IF EXISTS gym_tracker CASCADE"))
         conn.execute(text("DROP SCHEMA IF EXISTS flights_tracker CASCADE"))
+        conn.execute(text("DROP SCHEMA IF EXISTS macro_tracker CASCADE"))   # ← nuevo
         conn.execute(text("CREATE SCHEMA core"))
         conn.execute(text("CREATE SCHEMA expenses_tracker"))
         conn.execute(text("CREATE SCHEMA gym_tracker"))
         conn.execute(text("CREATE SCHEMA flights_tracker"))
+        conn.execute(text("CREATE SCHEMA macro_tracker"))                   # ← nuevo
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
@@ -59,6 +84,7 @@ def setup_database():
         conn.execute(text("DROP SCHEMA IF EXISTS expenses_tracker CASCADE"))
         conn.execute(text("DROP SCHEMA IF EXISTS gym_tracker CASCADE"))
         conn.execute(text("DROP SCHEMA IF EXISTS flights_tracker CASCADE"))
+        conn.execute(text("DROP SCHEMA IF EXISTS macro_tracker CASCADE"))   # ← nuevo
 
 
 @pytest.fixture(scope="function")
@@ -427,3 +453,178 @@ def multiple_flights(auth_client, mock_aerodatabox):
         assert response.status_code == 201, response.json()
         ids.append(response.json()["id"])
     return ids
+
+
+# ==================== MACRO TRACKER — MOCK DATA ====================
+
+MOCK_PRODUCT_RAW = {
+    "code": "8480000342591",
+    "status": 1,
+    "product": {
+        "code": "8480000342591",
+        "product_name": "Arroz redondo",
+        "brands": "Hacendado",
+        "serving_size": "100g",
+        "serving_quantity": 100.0,
+        "nutrition_grades": "b",
+        "image_front_small_url": "https://images.openfoodfacts.org/arroz.jpg",
+        "categories_tags": ["en:cereals", "en:rices"],
+        "allergens_tags": [],
+        "nutriments": {
+            "energy-kcal_100g": 354.0,
+            "proteins_100g": 7.0,
+            "carbohydrates_100g": 77.0,
+            "sugars_100g": 0.4,
+            "fat_100g": 0.9,
+            "saturated-fat_100g": 0.2,
+            "fiber_100g": 0.6,
+            "salt_100g": 0.01,
+            "sodium_100g": 0.004,
+        },
+    },
+}
+
+MOCK_PRODUCT_PARTIAL_RAW = {
+    "code": "1234567890123",
+    "status": 1,
+    "product": {
+        "code": "1234567890123",
+        "product_name": "Producto incompleto",
+        "brands": "MarcaX",
+        "nutriments": {
+            "energy-kcal_100g": 200.0,
+            # Sin proteínas, grasas, etc. — caso real frecuente en OFF
+        },
+    },
+}
+
+
+# ==================== MACRO TRACKER — MOCK FIXTURES ====================
+
+@pytest.fixture
+def mock_off_client():
+    """Parchea OpenFoodFactsClient.get_product → producto completo"""
+    with patch(
+        "app.modules.macro_tracker.openfoodfacts_client.OpenFoodFactsClient.get_product",
+        new_callable=AsyncMock,
+        return_value=MOCK_PRODUCT_RAW["product"],
+    ):
+        yield
+
+
+@pytest.fixture
+def mock_off_not_found():
+    """Parchea get_product → ProductNotFoundInAPIError"""
+    with patch(
+        "app.modules.macro_tracker.openfoodfacts_client.OpenFoodFactsClient.get_product",
+        new_callable=AsyncMock,
+        side_effect=ProductNotFoundInAPIError("0000000000000"),
+    ):
+        yield
+
+
+@pytest.fixture
+def mock_off_timeout():
+    """Parchea get_product → OFFTimeoutError"""
+    with patch(
+        "app.modules.macro_tracker.openfoodfacts_client.OpenFoodFactsClient.get_product",
+        new_callable=AsyncMock,
+        side_effect=OFFTimeoutError(),
+    ):
+        yield
+
+
+@pytest.fixture
+def mock_off_rate_limit():
+    """Parchea get_product → OFFRateLimitError"""
+    with patch(
+        "app.modules.macro_tracker.openfoodfacts_client.OpenFoodFactsClient.get_product",
+        new_callable=AsyncMock,
+        side_effect=OFFRateLimitError(),
+    ):
+        yield
+
+
+@pytest.fixture
+def mock_off_partial():
+    """Parchea get_product → producto con solo calorías (campos parciales)"""
+    with patch(
+        "app.modules.macro_tracker.openfoodfacts_client.OpenFoodFactsClient.get_product",
+        new_callable=AsyncMock,
+        return_value=MOCK_PRODUCT_PARTIAL_RAW["product"],
+    ):
+        yield
+
+
+# ==================== MACRO TRACKER — SAMPLE DATA ====================
+
+@pytest.fixture
+def sample_barcode():
+    return "8480000342591"
+
+
+@pytest.fixture
+def sample_diary_entry_data():
+    """DiaryEntryCreate válido — requiere cached_product_id para el product_id"""
+    return {
+        "entry_date": date.today().isoformat(),
+        "meal_type": "lunch",
+        "amount_g": 150.0,
+    }
+
+
+# ==================== MACRO TRACKER — FIXTURES COMPUESTOS ====================
+
+@pytest.fixture
+def cached_product_id(auth_client, mock_off_client, sample_barcode):
+    """Escanea el barcode mock → guarda el producto en BD → devuelve su id"""
+    response = auth_client.get(f"/api/v1/macros/products/barcode/{sample_barcode}")
+    assert response.status_code == 200, response.json()
+    return response.json()["id"]
+
+
+@pytest.fixture
+def partial_product_id(auth_client, mock_off_partial):
+    """Producto con solo calorías en BD"""
+    response = auth_client.get("/api/v1/macros/products/barcode/1234567890123")
+    assert response.status_code == 200, response.json()
+    return response.json()["id"]
+
+
+@pytest.fixture
+def diary_entry_id(auth_client, cached_product_id, sample_diary_entry_data):
+    """Crea una entrada de diario y devuelve su id"""
+    data = {**sample_diary_entry_data, "product_id": cached_product_id}
+    response = auth_client.post("/api/v1/macros/diary", json=data)
+    assert response.status_code == 201, response.json()
+    return response.json()["id"]
+
+
+@pytest.fixture
+def multiple_diary_entries(auth_client, mock_off_client, sample_barcode):
+    """Crea 10 entradas en 5 días distintos para tests de stats"""
+    product_resp = auth_client.get(f"/api/v1/macros/products/barcode/{sample_barcode}")
+    product_id = product_resp.json()["id"]
+
+    ids = []
+    meal_types = ["breakfast", "lunch", "dinner", "morning_snack", "afternoon_snack",
+                  "breakfast", "lunch", "dinner", "breakfast", "lunch"]
+    for i, meal in enumerate(meal_types):
+        entry_date = (date.today() - timedelta(days=i % 5)).isoformat()
+        resp = auth_client.post("/api/v1/macros/diary", json={
+            "product_id": product_id,
+            "entry_date": entry_date,
+            "meal_type": meal,
+            "amount_g": 100.0 + i * 10,
+        })
+        assert resp.status_code == 201, resp.json()
+        ids.append(resp.json()["id"])
+    return ids
+
+
+@pytest.fixture
+def user_goal_id(auth_client):
+    """Crea/devuelve los objetivos del usuario de test"""
+    response = auth_client.get("/api/v1/macros/goals")
+    assert response.status_code == 200, response.json()
+    return response.json()["id"]
