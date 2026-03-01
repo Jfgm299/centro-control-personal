@@ -21,20 +21,26 @@ class DiaryEntry(Base):
     product_id = Column(Integer, ForeignKey("macro_tracker.products.id"), nullable=False)
     entry_date = Column(Date, nullable=False)
     meal_type  = Column(
-        SAEnum(MealType, name="mealtype", schema="macro_tracker", create_type=True),
+        SAEnum(
+            MealType,
+            name="mealtype",
+            schema="macro_tracker",
+            create_type=False,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
         nullable=False,
     )
     amount_g = Column(Float, nullable=False)
 
     # Nutrientes calculados para amount_g
-    energy_kcal    = Column(Float, nullable=True)
-    proteins_g     = Column(Float, nullable=True)
+    energy_kcal     = Column(Float, nullable=True)
+    proteins_g      = Column(Float, nullable=True)
     carbohydrates_g = Column(Float, nullable=True)
-    sugars_g       = Column(Float, nullable=True)
-    fat_g          = Column(Float, nullable=True)
+    sugars_g        = Column(Float, nullable=True)
+    fat_g           = Column(Float, nullable=True)
     saturated_fat_g = Column(Float, nullable=True)
-    fiber_g        = Column(Float, nullable=True)
-    salt_g         = Column(Float, nullable=True)
+    fiber_g         = Column(Float, nullable=True)
+    salt_g          = Column(Float, nullable=True)
 
     notes      = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -45,7 +45,7 @@ class DiaryService:
             user_id=user_id,
             product_id=data.product_id,
             entry_date=data.entry_date,
-            meal_type=data.meal_type,
+            meal_type=data.meal_type.lower(),
             amount_g=data.amount_g,
             notes=data.notes,
             # Calcular todos los nutrientes para amount_g
