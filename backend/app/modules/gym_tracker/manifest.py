@@ -1,0 +1,1 @@
+SCHEMA_NAME = "gym_tracker"

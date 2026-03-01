@@ -3,20 +3,15 @@ from sqlalchemy import engine_from_config, pool, text
 from alembic import context
 
 config = context.config
-
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 from app.core import Base
-from app.modules.expenses_tracker import expense
-from app.modules.gym_tracker.models import *
-from app.modules.flights_tracker.flight import Flight   # ← nuevo
-from app.core.auth.user import User
+from app.core.auth.user import User  # noqa: F401 — siempre presente
+from app.core.module_loader import import_all_models, get_all_schemas
 
-# Añade estas 3 líneas junto a los otros imports de módulos:
-from app.modules.macro_tracker.product import Product          # noqa: F401
-from app.modules.macro_tracker.diary_entry import DiaryEntry   # noqa: F401
-from app.modules.macro_tracker.user_goal import UserGoal       # noqa: F401
+# Auto-importa todos los modelos de todos los módulos instalados
+import_all_models()
 
 target_metadata = Base.metadata
 
@@ -40,12 +35,11 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:
-        # ← Crear schemas antes de las migraciones
-        connection.execute(text("CREATE SCHEMA IF NOT EXISTS gym_tracker"))
-        connection.execute(text("CREATE SCHEMA IF NOT EXISTS expenses_tracker"))
+        # Crea el schema core siempre
         connection.execute(text("CREATE SCHEMA IF NOT EXISTS core"))
-        connection.execute(text("CREATE SCHEMA IF NOT EXISTS flights_tracker"))  # ← nuevo
-        connection.execute(text("CREATE SCHEMA IF NOT EXISTS macro_tracker"))
+        # Crea automáticamente el schema de cada módulo instalado
+        for schema in get_all_schemas():
+            connection.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema}"))
         connection.commit()
 
         context.configure(
