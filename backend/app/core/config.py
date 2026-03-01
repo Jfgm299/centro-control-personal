@@ -38,6 +38,16 @@ class Settings(BaseSettings):
     # OpenFoodFacts
     OFF_BASE_URL: str = "https://world.openfoodfacts.org"
 
+
+
+
+    # R2 configuration for trips tracker:
+    R2_ACCOUNT_ID:        str
+    R2_ACCESS_KEY_ID:     str
+    R2_SECRET_ACCESS_KEY: str
+    R2_BUCKET_NAME:       str
+    R2_PUBLIC_URL:        str
+
     model_config = ConfigDict(
         env_file=Path(__file__).resolve().parent.parent.parent / ".env",  # ← aquí
         case_sensitive=True,
