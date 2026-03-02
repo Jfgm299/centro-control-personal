@@ -1,18 +1,20 @@
 import httpx
-from app.core.config import settings
 from .exceptions import ProductNotFoundInAPIError, OFFTimeoutError, OFFRateLimitError, OFFError
 
 
 class OpenFoodFactsClient:
-    BASE_URL = settings.OFF_BASE_URL
     FIELDS = (
         "code,product_name,brands,serving_size,serving_quantity,"
         "nutriments,nutrition_grades,image_front_small_url,"
         "categories_tags,allergens_tags"
     )
     TIMEOUT = 10.0
-    # OFF requiere User-Agent identificativo — política de uso
     USER_AGENT = "CentroControl/1.0 (contacto@centrocontrol.app)"
+
+    def __init__(self):
+        from app.modules.macro_tracker.manifest import get_settings
+        s = get_settings()
+        self.BASE_URL = s["OFF_BASE_URL"]
 
     async def get_product(self, barcode: str) -> dict:
         """GET /api/v2/product/{barcode} — 1 llamada, devuelve el dict 'product'"""
@@ -47,9 +49,9 @@ class OpenFoodFactsClient:
         url = f"{self.BASE_URL}/api/v2/search"
         params = {
             "search_terms": query,
-            "fields": self.FIELDS,
-            "page_size": page_size,
-            "sort_by": "popularity_key",
+            "fields":       self.FIELDS,
+            "page_size":    page_size,
+            "sort_by":      "popularity_key",
         }
         headers = {"User-Agent": self.USER_AGENT}
 
@@ -68,7 +70,6 @@ class OpenFoodFactsClient:
         """Normaliza el dict 'product' de OFF a los campos de la tabla products."""
         nutriments = raw.get("nutriments", {})
         brands_raw = raw.get("brands") or ""
-        # OFF a veces devuelve varias marcas separadas por coma — tomamos la primera
         brand = brands_raw.split(",")[0].strip() or None
 
         return {
@@ -77,10 +78,10 @@ class OpenFoodFactsClient:
             "brand":              brand,
             "serving_size_text":  raw.get("serving_size"),
             "serving_quantity_g": raw.get("serving_quantity"),
-            "nutriscore": self._parse_nutriscore(raw.get("nutrition_grades")),
+            "nutriscore":         self._parse_nutriscore(raw.get("nutrition_grades")),
             "image_url":          raw.get("image_front_small_url"),
             "categories":         ",".join(raw.get("categories_tags") or [])[:500] or None,
-            "allergens":          ",".join(raw.get("allergens_tags") or [])[:300] or None,
+            "allergens":          ",".join(raw.get("allergens_tags")  or [])[:300] or None,
             "energy_kcal_100g":   self._get_nutriment(nutriments, "energy-kcal"),
             "proteins_100g":      self._get_nutriment(nutriments, "proteins"),
             "carbohydrates_100g": self._get_nutriment(nutriments, "carbohydrates"),
@@ -95,7 +96,6 @@ class OpenFoodFactsClient:
         }
 
     def _get_nutriment(self, nutriments: dict, key: str) -> float | None:
-        """Busca primero la clave _100g, luego la clave base. Defensivo ante tipos inesperados."""
         value = nutriments.get(f"{key}_100g")
         if value is None:
             value = nutriments.get(key)
@@ -103,12 +103,9 @@ class OpenFoodFactsClient:
             return float(value) if value is not None else None
         except (ValueError, TypeError):
             return None
-        
+
     def _parse_nutriscore(self, value: str | None) -> str | None:
-        """Nutri-Score válido es una sola letra a-e. Cualquier otro valor (unknown, not-applicable...) → None."""
         if not value:
             return None
         clean = value.strip().lower()
-        if clean in {"a", "b", "c", "d", "e"}:
-            return clean
-        return None
+        return clean if clean in {"a", "b", "c", "d", "e"} else None

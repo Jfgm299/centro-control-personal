@@ -3,10 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html
 from .core import engine, Base, settings
 from app.core import auth
-from app.core.module_loader import import_module
+from app.core.module_loader import import_module, import_all_models, register_user_relationships
 
 if __name__ == '__main__':
     Base.metadata.create_all(bind=engine)
+
+# ── Registrar modelos y relaciones ANTES de cargar módulos ───────────────────
+import_all_models()
+register_user_relationships()
 
 # ── Cargar módulos dinámicamente ──────────────────────────────────────────────
 loaded_modules = [('auth', auth)]
@@ -55,7 +59,6 @@ app.add_middleware(
 
 # ── Handlers y routers — completamente automáticos ───────────────────────────
 for module_name, module in loaded_modules:
-    # Registrar exception handlers si el módulo los exporta
     if hasattr(module, 'register_handlers'):
         module.register_handlers(app)
 
