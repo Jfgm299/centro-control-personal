@@ -3,6 +3,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
+
 class User(Base):
     __tablename__ = 'users'
     __table_args__ = {'schema': 'core', 'extend_existing': True}
@@ -14,12 +15,5 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # Relationships
+    # Relaciones core — nunca se tocan
     refresh_tokens = relationship("RefreshToken", back_populates="user")
-    workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")
-    expenses = relationship("Expense", back_populates="user", cascade="all, delete-orphan")
-    body_measurements = relationship("BodyMeasurement", back_populates="user", cascade="all, delete-orphan")
-    flights            = relationship("Flight", back_populates="user", cascade="all, delete-orphan")
-    diary_entries = relationship("DiaryEntry",back_populates="user",cascade="all, delete-orphan")
-    user_goal = relationship("UserGoal",back_populates="user",uselist=False,cascade="all, delete-orphan")
-    trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan")
