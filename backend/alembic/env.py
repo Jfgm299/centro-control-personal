@@ -1,13 +1,15 @@
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool, text
 from alembic import context
+import os
 
 config = context.config
 
 # Sobreescribe la URL con la variable de entorno
-import os
 database_url = os.environ.get("DATABASE_URL")
 if database_url:
+    # Railway a veces usa postgres:// en lugar de postgresql://
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
     config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:
