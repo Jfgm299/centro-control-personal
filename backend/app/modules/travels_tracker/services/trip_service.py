@@ -5,7 +5,6 @@ from ..enums.photo_status import PhotoStatus
 from ..schemas.trip_schema import TripCreate, TripUpdate
 from ..exceptions.travel_exceptions import TripNotFoundError, PhotoNotFoundError
 from .storage_service import get_storage_service
-storage_service = get_storage_service()
 
 
 def create_trip(db: Session, user_id: int, data: TripCreate) -> Trip:
@@ -43,16 +42,15 @@ def update_trip(db: Session, user_id: int, trip_id: int, data: TripUpdate) -> Tr
 
 def delete_trip(db: Session, user_id: int, trip_id: int) -> None:
     trip = get_trip_by_id(db, user_id, trip_id)
-    # Remove all R2 objects for this trip before DB delete
-    storage_service.delete_objects_by_prefix(
-        storage_service.build_trip_prefix(user_id, trip_id)
+    storage = get_storage_service()
+    storage.delete_objects_by_prefix(
+        storage.build_trip_prefix(user_id, trip_id)
     )
     db.delete(trip)
     db.commit()
 
 
 def get_trips_for_map(db: Session, user_id: int) -> list[Trip]:
-    """Returns only trips with valid coordinates for the world map."""
     return (
         db.query(Trip)
         .filter(
