@@ -4,7 +4,8 @@ from ..models.photo import Photo
 from ..enums.photo_status import PhotoStatus
 from ..schemas.trip_schema import TripCreate, TripUpdate
 from ..exceptions.travel_exceptions import TripNotFoundError, PhotoNotFoundError
-from .storage_service import storage_service
+from .storage_service import get_storage_service
+storage_service = get_storage_service()
 
 
 def create_trip(db: Session, user_id: int, data: TripCreate) -> Trip:

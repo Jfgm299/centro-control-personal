@@ -12,7 +12,8 @@ from ..exceptions.travel_exceptions import (
     TripPhotoLimitReachedError,
 )
 from .album_service import get_album_by_id
-from .storage_service import storage_service
+from .storage_service import get_storage_service
+storage_service = get_storage_service()
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 MAX_PHOTOS_PER_TRIP = 30

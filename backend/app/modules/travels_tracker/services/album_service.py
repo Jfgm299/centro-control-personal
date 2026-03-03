@@ -5,7 +5,8 @@ from ..enums.photo_status import PhotoStatus
 from ..schemas.album_schema import AlbumCreate, AlbumUpdate, AlbumReorderItem
 from ..exceptions.travel_exceptions import AlbumNotFoundError, PhotoNotFoundError
 from .trip_service import get_trip_by_id
-from .storage_service import storage_service
+from .storage_service import get_storage_service
+storage_service = get_storage_service()
 
 
 def create_album(db: Session, user_id: int, trip_id: int, data: AlbumCreate) -> Album:

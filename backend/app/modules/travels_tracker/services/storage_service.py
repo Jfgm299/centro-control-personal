@@ -79,5 +79,12 @@ class StorageService:
         return f"users/{user_id}/trips/{trip_id}/albums/{album_id}/"
 
 
-# Singleton — lazy, se instancia cuando se importa por primera vez en runtime
-storage_service = StorageService()
+
+# Por esto:
+_storage_service = None
+
+def get_storage_service() -> StorageService:
+    global _storage_service
+    if _storage_service is None:
+        _storage_service = StorageService()
+    return _storage_service
