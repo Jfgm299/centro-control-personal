@@ -1,23 +1,29 @@
 from sqlalchemy.orm import Session
 from ..product import Product
 from ..openfoodfacts_client import OpenFoodFactsClient
+from ..macro_schema import ProductCreate, ProductUpdate
 
 client = OpenFoodFactsClient()
+
+NUTRIENT_FIELDS = [
+    "energy_kcal_100g", "proteins_100g", "carbohydrates_100g",
+    "sugars_100g", "fat_100g", "saturated_fat_100g",
+    "fiber_100g", "salt_100g",
+]
 
 
 class FoodService:
 
     async def get_or_fetch_by_barcode(self, db: Session, barcode: str) -> Product:
-        # Normalizar: solo dígitos, sin espacios
         barcode = barcode.strip()
 
-        # 1. Buscar en caché local primero — 0 llamadas a OFF
+        # 1. Buscar en caché local primero
         product = db.query(Product).filter(Product.barcode == barcode).first()
         if product:
             return product
 
-        # 2. No está en BD → llamar a OFF (1 sola llamada)
-        raw = await client.get_product(barcode)
+        # 2. No está en BD → llamar a OFF y persistir
+        raw    = await client.get_product(barcode)
         parsed = client.parse_product(raw)
 
         product = Product(**parsed)
@@ -37,31 +43,86 @@ class FoodService:
             .all()
         )
 
-        # Si hay suficientes resultados locales, no llamamos a OFF
         if len(local_results) >= 5:
             return local_results
 
-        # 2. Completar con resultados de OFF (no se cachean)
+        # 2. Completar con resultados de OFF — PERSISTIR para que tengan id
         try:
             remote_results = await client.search_by_name(query_stripped, page_size=10)
         except Exception:
-            # Si OFF falla en búsqueda por nombre, devolvemos lo que tenemos local
             return local_results
 
-        # Deduplicar: excluir barcodes que ya están en local
         local_barcodes = {p.barcode for p in local_results if p.barcode}
-        extra = []
+
         for raw in remote_results:
             parsed = client.parse_product(raw)
-            if parsed.get("barcode") not in local_barcodes:
-                # Crear objeto Product sin persistir (solo para la respuesta)
-                extra.append(Product(**parsed))
+            barcode = parsed.get("barcode")
 
-        return (local_results + extra)[:limit]
+            # Evitar duplicados con local
+            if barcode and barcode in local_barcodes:
+                continue
+
+            # Upsert: si ya existe en BD por barcode, no duplicar
+            if barcode:
+                existing = db.query(Product).filter(Product.barcode == barcode).first()
+                if existing:
+                    local_results.append(existing)
+                    local_barcodes.add(barcode)
+                    continue
+
+            # Persistir el producto de OFF para que tenga id
+            product = Product(**parsed)
+            db.add(product)
+            try:
+                db.commit()
+                db.refresh(product)
+                local_results.append(product)
+                if barcode:
+                    local_barcodes.add(barcode)
+            except Exception:
+                db.rollback()
+
+        return local_results[:limit]
 
     def get_product_by_id(self, db: Session, product_id: int) -> Product:
         from ..exceptions import ProductNotFoundError
         product = db.query(Product).filter(Product.id == product_id).first()
         if not product:
             raise ProductNotFoundError(product_id)
+        return product
+
+    def create_product(self, db: Session, data: ProductCreate) -> Product:
+        """Crea un producto manual con source='manual'."""
+        product = Product(
+            product_name       = data.product_name,
+            brand              = data.brand,
+            barcode            = data.barcode or None,
+            serving_quantity_g = data.serving_quantity_g,
+            energy_kcal_100g   = data.energy_kcal_100g,
+            proteins_100g      = data.proteins_100g,
+            carbohydrates_100g = data.carbohydrates_100g,
+            sugars_100g        = data.sugars_100g,
+            fat_100g           = data.fat_100g,
+            saturated_fat_100g = data.saturated_fat_100g,
+            fiber_100g         = data.fiber_100g,
+            salt_100g          = data.salt_100g,
+            source             = "manual",
+        )
+        db.add(product)
+        db.commit()
+        db.refresh(product)
+        return product
+
+    def update_product(self, db: Session, product_id: int, data: ProductUpdate) -> Product:
+        """Actualiza campos nutricionales de un producto existente."""
+        from ..exceptions import ProductNotFoundError
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product:
+            raise ProductNotFoundError(product_id)
+
+        for field, value in data.model_dump(exclude_none=True).items():
+            setattr(product, field, value)
+
+        db.commit()
+        db.refresh(product)
         return product

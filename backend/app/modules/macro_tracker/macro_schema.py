@@ -28,6 +28,37 @@ class ProductResponse(BaseModel):
     source:             str
 
 
+class ProductCreate(BaseModel):
+    """Crear un producto manualmente (source = 'manual')."""
+    product_name:       str             = Field(..., min_length=1, max_length=200)
+    brand:              Optional[str]   = Field(None, max_length=100)
+    barcode:            Optional[str]   = Field(None, max_length=30)
+    serving_quantity_g: Optional[float] = Field(None, gt=0)
+    energy_kcal_100g:   Optional[float] = Field(None, ge=0)
+    proteins_100g:      Optional[float] = Field(None, ge=0)
+    carbohydrates_100g: Optional[float] = Field(None, ge=0)
+    sugars_100g:        Optional[float] = Field(None, ge=0)
+    fat_100g:           Optional[float] = Field(None, ge=0)
+    saturated_fat_100g: Optional[float] = Field(None, ge=0)
+    fiber_100g:         Optional[float] = Field(None, ge=0)
+    salt_100g:          Optional[float] = Field(None, ge=0)
+
+
+class ProductUpdate(BaseModel):
+    """Actualizar campos nutricionales de un producto existente."""
+    product_name:       Optional[str]   = Field(None, min_length=1, max_length=200)
+    brand:              Optional[str]   = None
+    serving_quantity_g: Optional[float] = Field(None, gt=0)
+    energy_kcal_100g:   Optional[float] = Field(None, ge=0)
+    proteins_100g:      Optional[float] = Field(None, ge=0)
+    carbohydrates_100g: Optional[float] = Field(None, ge=0)
+    sugars_100g:        Optional[float] = Field(None, ge=0)
+    fat_100g:           Optional[float] = Field(None, ge=0)
+    saturated_fat_100g: Optional[float] = Field(None, ge=0)
+    fiber_100g:         Optional[float] = Field(None, ge=0)
+    salt_100g:          Optional[float] = Field(None, ge=0)
+
+
 # ── Diary Entry ───────────────────────────────────────────────────────────────
 
 class DiaryEntryCreate(BaseModel):
@@ -94,8 +125,8 @@ class NutrientTotals(BaseModel):
 # ── Meal Summary (agrupado por comida) ────────────────────────────────────────
 
 class MealSummary(BaseModel):
-    meal_type:       MealType
-    entries:         list[DiaryEntryResponse]
+    meal_type:             MealType
+    entries:               list[DiaryEntryResponse]
     total_energy_kcal:     float
     total_proteins_g:      float
     total_carbohydrates_g: float
@@ -105,10 +136,10 @@ class MealSummary(BaseModel):
 # ── Goal Progress ─────────────────────────────────────────────────────────────
 
 class GoalProgress(BaseModel):
-    energy_pct:       float
-    proteins_pct:     float
+    energy_pct:        float
+    proteins_pct:      float
     carbohydrates_pct: float
-    fat_pct:          float
+    fat_pct:           float
 
 
 # ── User Goal ─────────────────────────────────────────────────────────────────
@@ -146,24 +177,24 @@ class DailySummaryResponse(BaseModel):
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
 class DailyAverage(BaseModel):
-    period_days:        int
-    days_logged:        int
-    avg_energy_kcal:    float = 0.0
-    avg_proteins_g:     float = 0.0
+    period_days:         int
+    days_logged:         int
+    avg_energy_kcal:     float = 0.0
+    avg_proteins_g:      float = 0.0
     avg_carbohydrates_g: float = 0.0
-    avg_fat_g:          float = 0.0
-    avg_fiber_g:        float = 0.0
+    avg_fat_g:           float = 0.0
+    avg_fiber_g:         float = 0.0
 
 
 class ProductFrequency(BaseModel):
-    product:      ProductResponse
-    entry_count:  int
+    product:     ProductResponse
+    entry_count: int
 
 
 class StatsResponse(BaseModel):
-    period_days:      int
-    days_logged:      int
-    total_entries:    int
-    consistency_pct:  float
-    daily_average:    DailyAverage
-    top_products:     list[ProductFrequency]
+    period_days:     int
+    days_logged:     int
+    total_entries:   int
+    consistency_pct: float
+    daily_average:   DailyAverage
+    top_products:    list[ProductFrequency]
