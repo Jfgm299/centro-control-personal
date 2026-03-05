@@ -12,26 +12,17 @@ from ..exceptions.travel_exceptions import (
     TripPhotoLimitReachedError,
 )
 from .album_service import get_album_by_id
-from .storage_service import storage_service
+from .storage_service import get_storage_service
 
-# ── Constants ──────────────────────────────────────────────────────────────────
 MAX_PHOTOS_PER_TRIP = 30
 
 ALLOWED_CONTENT_TYPES = {
-    "image/jpeg",
-    "image/jpg",
-    "image/png",
-    "image/webp",
-    "image/heic",
-    "image/heif",
-    "image/gif",
+    "image/jpeg", "image/jpg", "image/png", "image/webp",
+    "image/heic", "image/heif", "image/gif",
 }
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
-
 def _count_uploaded_photos_in_trip(db: Session, user_id: int, trip_id: int) -> int:
-    """Count only confirmed (uploaded) photos — pending ones don't count toward the limit."""
     return (
         db.query(Photo)
         .filter(
@@ -47,49 +38,37 @@ def _get_extension(filename: str) -> str:
     return filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
 
 
-# ── Upload flow ────────────────────────────────────────────────────────────────
-
 def request_photo_upload(
     db: Session, user_id: int, album_id: int, data: PhotoUploadRequest
 ) -> dict:
-    """
-    Step 1 of the upload flow.
-    Validates content_type and trip limit, creates a pending Photo record,
-    then returns a presigned PUT URL for the frontend to upload directly to R2.
-    """
     if data.content_type not in ALLOWED_CONTENT_TYPES:
         raise InvalidContentTypeError(data.content_type)
 
     album = get_album_by_id(db, user_id, album_id)
-
-    # Enforce trip photo limit (only uploaded photos count)
     count = _count_uploaded_photos_in_trip(db, user_id, album.trip_id)
     if count >= MAX_PHOTOS_PER_TRIP:
         raise TripPhotoLimitReachedError(album.trip_id, MAX_PHOTOS_PER_TRIP)
 
     ext = _get_extension(data.filename)
-
-    # Create the pending record first with db.flush() to obtain the auto-generated ID
-    # without committing — we need the ID to build the deterministic R2 key.
     photo = Photo(
         album_id=album_id,
         trip_id=album.trip_id,
         user_id=user_id,
         filename=data.filename,
-        r2_key="",  # placeholder until we have the ID
+        r2_key="",
         content_type=data.content_type,
         status=PhotoStatus.pending,
     )
     db.add(photo)
-    db.flush()  # assigns photo.id without committing the transaction
+    db.flush()
 
-    key = storage_service.build_photo_key(user_id, album.trip_id, album_id, photo.id, ext)
+    storage = get_storage_service()
+    key = storage.build_photo_key(user_id, album.trip_id, album_id, photo.id, ext)
     photo.r2_key = key
     db.commit()
     db.refresh(photo)
 
-    upload_url = storage_service.generate_upload_url(key, data.content_type)
-
+    upload_url = storage.generate_upload_url(key, data.content_type)
     return {
         "photo_id":   photo.id,
         "upload_url": upload_url,
@@ -101,20 +80,18 @@ def request_photo_upload(
 def confirm_photo_upload(
     db: Session, user_id: int, photo_id: int, data: PhotoConfirmRequest
 ) -> Photo:
-    """
-    Step 2 of the upload flow.
-    Verifies the object actually landed in R2, then marks the photo as uploaded.
-    """
     photo = db.query(Photo).filter(Photo.id == photo_id, Photo.user_id == user_id).first()
     if not photo:
         raise PhotoNotFoundError(photo_id)
     if photo.status == PhotoStatus.uploaded:
         raise PhotoAlreadyConfirmedError(photo_id)
-    if not storage_service.object_exists(photo.r2_key):
+
+    storage = get_storage_service()
+    if not storage.object_exists(photo.r2_key):
         raise PhotoNotUploadedToStorageError(photo_id)
 
     photo.status     = PhotoStatus.uploaded
-    photo.public_url = storage_service.build_public_url(photo.r2_key)
+    photo.public_url = storage.build_public_url(photo.r2_key)
     photo.size_bytes = data.size_bytes
     photo.width      = data.width
     photo.height     = data.height
@@ -124,10 +101,7 @@ def confirm_photo_upload(
     return photo
 
 
-# ── CRUD ───────────────────────────────────────────────────────────────────────
-
 def get_photos(db: Session, user_id: int, album_id: int) -> list[Photo]:
-    """Returns only confirmed (uploaded) photos, ordered by position then created_at."""
     get_album_by_id(db, user_id, album_id)
     return (
         db.query(Photo)
@@ -167,7 +141,7 @@ def update_photo(db: Session, user_id: int, photo_id: int, data: PhotoUpdate) ->
 
 def delete_photo(db: Session, user_id: int, photo_id: int) -> None:
     photo = get_photo_by_id(db, user_id, photo_id)
-    storage_service.delete_object(photo.r2_key)
+    get_storage_service().delete_object(photo.r2_key)
     db.delete(photo)
     db.commit()
 
@@ -181,7 +155,6 @@ def toggle_favorite(db: Session, user_id: int, photo_id: int) -> Photo:
 
 
 def get_favorites(db: Session, user_id: int) -> list[Photo]:
-    """Global favorites collection — all trips."""
     return (
         db.query(Photo)
         .filter(

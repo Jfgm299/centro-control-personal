@@ -5,11 +5,11 @@ from ..enums.photo_status import PhotoStatus
 from ..schemas.album_schema import AlbumCreate, AlbumUpdate, AlbumReorderItem
 from ..exceptions.travel_exceptions import AlbumNotFoundError, PhotoNotFoundError
 from .trip_service import get_trip_by_id
-from .storage_service import storage_service
+from .storage_service import get_storage_service
 
 
 def create_album(db: Session, user_id: int, trip_id: int, data: AlbumCreate) -> Album:
-    get_trip_by_id(db, user_id, trip_id)  # verifies ownership
+    get_trip_by_id(db, user_id, trip_id)
     album = Album(user_id=user_id, trip_id=trip_id, **data.model_dump())
     db.add(album)
     db.commit()
@@ -45,8 +45,9 @@ def update_album(db: Session, user_id: int, album_id: int, data: AlbumUpdate) ->
 
 def delete_album(db: Session, user_id: int, album_id: int) -> None:
     album = get_album_by_id(db, user_id, album_id)
-    storage_service.delete_objects_by_prefix(
-        storage_service.build_album_prefix(user_id, album.trip_id, album_id)
+    storage = get_storage_service()
+    storage.delete_objects_by_prefix(
+        storage.build_album_prefix(user_id, album.trip_id, album_id)
     )
     db.delete(album)
     db.commit()
