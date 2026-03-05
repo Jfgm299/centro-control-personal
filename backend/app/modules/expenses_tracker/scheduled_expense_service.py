@@ -1,6 +1,6 @@
 from datetime import date
 from sqlalchemy.orm import Session
-from .scheduled_expense_model import ScheduledExpense
+from .scheduled_expense_model import ScheduledExpense, ScheduledCategory
 from .scheduled_expense_schema import ScheduledExpenseCreate, ScheduledExpenseUpdate
 from .expense import Expense
 
@@ -28,12 +28,11 @@ class ScheduledExpenseService:
 
         for item in items:
             if (
-                item.category == 'ONE_TIME'
+                item.category == ScheduledCategory.ONE_TIME
                 and item.is_active
                 and item.next_payment_date
                 and item.next_payment_date <= today
             ):
-                # Crear gasto real
                 expense = Expense(
                     user_id=user_id,
                     name=item.name,
@@ -41,8 +40,6 @@ class ScheduledExpenseService:
                     account=item.account,
                 )
                 db.add(expense)
-
-                # Marcar como inactivo para no volver a procesarlo
                 item.is_active = False
                 changed = True
 

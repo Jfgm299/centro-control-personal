@@ -19,6 +19,51 @@ scheduled_service = ScheduledExpenseService()
 router = APIRouter(prefix='/expenses', tags=['Expenses'])
 expense_service = ExpenseService()
 
+# ── Scheduled routes FIRST — antes de /{expense_id} para evitar que
+#    FastAPI intente parsear "scheduled" como int ─────────────────────────────
+
+@router.get('/scheduled', response_model=List[ScheduledExpenseResponse])
+def list_scheduled(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return scheduled_service.get_all(db, user_id=user.id)
+
+
+@router.post('/scheduled', response_model=ScheduledExpenseResponse, status_code=201)
+def create_scheduled(
+    data: ScheduledExpenseCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return scheduled_service.create(data, db, user_id=user.id)
+
+
+@router.patch('/scheduled/{id}', response_model=ScheduledExpenseResponse)
+def update_scheduled(
+    id: int,
+    data: ScheduledExpenseUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    obj = scheduled_service.update(id, data, db, user_id=user.id)
+    if not obj:
+        raise HTTPException(status_code=404, detail='Scheduled expense not found')
+    return obj
+
+
+@router.delete('/scheduled/{id}', status_code=204)
+def delete_scheduled(
+    id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if not scheduled_service.delete(id, db, user_id=user.id):
+        raise HTTPException(status_code=404, detail='Scheduled expense not found')
+
+
+# ── Regular expense routes ───────────────────────────────────────────────────
+
 @router.get('/', response_model=List[ExpenseResponse])
 def get_expenses(
     db: Session = Depends(get_db),
@@ -66,44 +111,3 @@ def delete_expense(
     success = expense_service.delete_expense(expense_id, db, user_id=user.id)
     if not success:
         raise HTTPException(status_code=404, detail='Expense not found')
-    return {"message": "Gasto eliminado", "id": expense_id}
-
-
-@router.get('/scheduled', response_model=List[ScheduledExpenseResponse])
-def list_scheduled(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    return scheduled_service.get_all(db, user_id=user.id)
-
-
-@router.post('/scheduled', response_model=ScheduledExpenseResponse, status_code=201)
-def create_scheduled(
-    data: ScheduledExpenseCreate,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    return scheduled_service.create(data, db, user_id=user.id)
-
-
-@router.patch('/scheduled/{id}', response_model=ScheduledExpenseResponse)
-def update_scheduled(
-    id: int,
-    data: ScheduledExpenseUpdate,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    obj = scheduled_service.update(id, data, db, user_id=user.id)
-    if not obj:
-        raise HTTPException(status_code=404, detail='Scheduled expense not found')
-    return obj
-
-
-@router.delete('/scheduled/{id}', status_code=204)
-def delete_scheduled(
-    id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    if not scheduled_service.delete(id, db, user_id=user.id):
-        raise HTTPException(status_code=404, detail='Scheduled expense not found')
