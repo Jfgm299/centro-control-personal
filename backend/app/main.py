@@ -12,6 +12,10 @@ if __name__ == '__main__':
 import_all_models()
 register_user_relationships()
 
+# ── Registrar automation handlers de todos los módulos ───────────────────────
+from app.modules.automations_engine.core.registry import registry
+register_automation_handlers(registry)
+
 # ── Cargar módulos dinámicamente ──────────────────────────────────────────────
 loaded_modules = [('auth', auth)]
 for module_name in settings.INSTALLED_MODULES:
