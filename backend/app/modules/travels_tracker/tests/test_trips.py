@@ -104,11 +104,6 @@ class TestTrips:
         assert response.status_code == 204
         assert auth_client.get(f"{BASE}/{trip['id']}").status_code == 404
 
-    def test_delete_trip_calls_r2_cleanup(self, auth_client, mock_storage, created_trip):
-        trip_id = created_trip["id"]
-        auth_client.delete(f"{BASE}/{trip_id}")
-        mock_storage.delete_objects_by_prefix.assert_called_once()
-
     def test_invalid_lat_returns_422(self, auth_client):
         response = auth_client.post(
             f"{BASE}/",

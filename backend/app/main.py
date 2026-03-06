@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html
 from .core import engine, Base, settings
 from app.core import auth
-from app.core.module_loader import import_module, import_all_models, register_user_relationships
+from app.core.module_loader import import_module, import_all_models, register_user_relationships, register_automation_handlers
 
 if __name__ == '__main__':
     Base.metadata.create_all(bind=engine)

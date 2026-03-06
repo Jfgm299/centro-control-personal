@@ -141,3 +141,31 @@ def register_user_relationships():
 
             from sqlalchemy.orm import relationship as sa_relationship
             setattr(User, attr_name, sa_relationship(rel["target"], **kwargs))
+
+
+def register_automation_handlers(registry) -> None:
+    """
+    Autodiscover de automatizaciones.
+    Itera sobre todos los módulos instalados y, si tienen automation_registry.py,
+    llama a su función register(registry).
+
+    Mismo mecanismo que get_installed_modules() — solo necesitas pegar la
+    carpeta del módulo en app/modules/ para que sus automatizaciones aparezcan.
+    No hay lista manual que mantener.
+    """
+    for module_name in get_installed_modules():
+        try:
+            automation_module = importlib.import_module(
+                f"{_MODULES_PACKAGE}.{module_name}.automation_registry"
+            )
+            if hasattr(automation_module, "register"):
+                automation_module.register(registry)
+        except ModuleNotFoundError:
+            # El módulo no tiene automation_registry.py — se ignora silenciosamente
+            pass
+        except Exception as e:
+            # Un error en el registro no debe romper el arranque de la app
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Error registrando automatizaciones de {module_name}: {e}"
+            )
