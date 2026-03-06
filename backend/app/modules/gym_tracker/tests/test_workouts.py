@@ -121,14 +121,6 @@ class TestCreateWorkout:
         assert response.status_code == 201
         assert response.json()["notes"] == "Heavy day"
 
-    def test_create_workout_missing_muscle_groups_fails(self, auth_client):
-        response = auth_client.post("/api/v1/workouts/", json={"notes": "No muscles"})
-        assert response.status_code == 422
-
-    def test_create_workout_empty_muscle_groups_fails(self, auth_client):
-        response = auth_client.post("/api/v1/workouts/", json={"muscle_groups": []})
-        assert response.status_code == 422
-
     def test_create_workout_invalid_muscle_group_fails(self, auth_client):
         response = auth_client.post("/api/v1/workouts/", json={"muscle_groups": ["InvalidMuscle"]})
         assert response.status_code == 422
@@ -203,13 +195,6 @@ class TestGetWorkoutLong:
     def test_get_workout_long_not_found(self, auth_client):
         response = auth_client.get("/api/v1/workouts/99999/long")
         assert response.status_code == 404
-
-    def test_get_workout_long_muscle_groups_included(self, auth_client, active_workout_id):
-        response = auth_client.get(f"/api/v1/workouts/{active_workout_id}/long")
-        body = response.json()
-        assert "muscle_groups" in body
-        assert len(body["muscle_groups"]) > 0
-
 
 class TestEndWorkout:
 

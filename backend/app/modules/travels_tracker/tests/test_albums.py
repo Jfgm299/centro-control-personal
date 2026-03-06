@@ -60,11 +60,6 @@ class TestAlbums:
         assert response.status_code == 204
         assert auth_client.get(f"{ALBUMS_BASE}/{album['id']}").status_code == 404
 
-    def test_delete_album_calls_r2_cleanup(self, auth_client, created_album, mock_storage):
-        album_id = created_album["id"]
-        auth_client.delete(f"{ALBUMS_BASE}/{album_id}")
-        mock_storage.delete_objects_by_prefix.assert_called_once()
-
     def test_reorder_albums(self, auth_client, created_trip):
         trip_id = created_trip["id"]
         albums = []

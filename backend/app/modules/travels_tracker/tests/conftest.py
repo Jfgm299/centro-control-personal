@@ -16,31 +16,29 @@ def mock_storage():
         "app.modules.travels_tracker.services.storage_service.StorageService",
         autospec=True,
     ) as MockClass:
+
         instance = MockClass.return_value
+
         instance.generate_upload_url.return_value = (
             "https://fake-r2.example.com/presigned-put-url"
         )
+
         instance.object_exists.return_value = True
         instance.delete_object.return_value = None
         instance.delete_objects_by_prefix.return_value = None
+
         instance.build_public_url.side_effect = (
             lambda key: f"https://pub-fake.r2.dev/{key}"
         )
 
-        # ← Añadir estas tres líneas — métodos estáticos puros, no tocan R2
         instance.build_photo_key.side_effect = StorageService.build_photo_key
         instance.build_trip_prefix.side_effect = StorageService.build_trip_prefix
         instance.build_album_prefix.side_effect = StorageService.build_album_prefix
 
+        # 🔴 ESTA ES LA PARTE IMPORTANTE
         with patch(
-            "app.modules.travels_tracker.services.trip_service.storage_service",
-            instance,
-        ), patch(
-            "app.modules.travels_tracker.services.album_service.storage_service",
-            instance,
-        ), patch(
-            "app.modules.travels_tracker.services.photo_service.storage_service",
-            instance,
+            "app.modules.travels_tracker.services.storage_service.get_storage_service",
+            return_value=instance,
         ):
             yield instance
 

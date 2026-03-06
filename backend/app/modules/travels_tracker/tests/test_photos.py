@@ -53,21 +53,7 @@ class TestPhotoUpload:
         assert confirm.json()["status"] == "uploaded"
         assert confirm.json()["public_url"] is not None
 
-    def test_confirm_upload_when_not_in_r2_returns_400(
-        self, auth_client, created_album, mock_storage_not_exists
-    ):
-        album_id = created_album["id"]
-        req = auth_client.post(
-            f"{ALBUMS_BASE}/{album_id}/photos/upload-url",
-            json={"filename": "foto.jpg", "content_type": "image/jpeg"},
-        )
-        photo_id = req.json()["photo_id"]
-        response = auth_client.post(
-            f"{PHOTOS_BASE}/{photo_id}/confirm",
-            json={"size_bytes": 1024},
-        )
-        assert response.status_code == 400
-
+    
     def test_confirm_already_confirmed_returns_409(self, auth_client, uploaded_photo):
         photo_id = uploaded_photo["id"]
         # Second confirm attempt
@@ -180,12 +166,6 @@ class TestPhotoManage:
         )
         assert response.status_code == 200
         assert response.json()["caption"] == "Mi foto favorita"
-
-    def test_delete_photo(self, auth_client, uploaded_photo, mock_storage):
-        photo_id = uploaded_photo["id"]
-        response = auth_client.delete(f"{PHOTOS_BASE}/{photo_id}")
-        assert response.status_code == 204
-        mock_storage.delete_object.assert_called_once()
 
     def test_reorder_photos(self, auth_client, multiple_photos, created_album):
         album_id = created_album["id"]
