@@ -1,5 +1,6 @@
 from enum import Enum as PyEnum
 
 class GymSetType(str, PyEnum):
-    CARDIO = 'Cardio',
+    CARDIO      = 'Cardio'
     WEIGHT_REPS = 'Weight_reps'
+    BODYWEIGHT  = 'Bodyweight'
