@@ -173,11 +173,12 @@ def handle_no_events_in_window(payload: dict, config: dict, db: Session, user_id
     now = datetime.now(timezone.utc)
     end = now + timedelta(hours=window_hours)
 
+    # Incluye eventos que ya empezaron pero aún no han terminado (en curso)
     events = db.query(Event).filter(
-        Event.user_id == user_id,
+        Event.user_id      == user_id,
         Event.is_cancelled == False,
-        Event.start_at >= now,
-        Event.start_at < end,
+        Event.start_at     <= end,   # empieza antes del fin de la ventana
+        Event.end_at       >= now,   # todavía no ha terminado
     ).all()
 
     if events:
@@ -188,12 +189,11 @@ def handle_no_events_in_window(payload: dict, config: dict, db: Session, user_id
         return {"matched": False, "reason": "not enough free time"}
 
     return {
-        "matched":       True,
-        "free_minutes":  free_minutes,
-        "window_start":  now.isoformat(),
-        "window_end":    end.isoformat(),
+        "matched":      True,
+        "free_minutes": free_minutes,
+        "window_start": now.isoformat(),
+        "window_end":   end.isoformat(),
     }
-
 
 def handle_overdue_reminders_exist(payload: dict, config: dict, db: Session, user_id: int) -> dict:
     """

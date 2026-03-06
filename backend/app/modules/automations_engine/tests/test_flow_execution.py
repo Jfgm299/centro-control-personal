@@ -527,3 +527,245 @@ class TestExecutionMetadata:
         ).json()["node_logs"]
         for log in logs:
             assert "duration_ms" in log
+
+class TestOutboundWebhookNode:
+
+    def _make_webhook_flow(self, auth_client, url, method="POST", body_template=None, headers=None, timeout=10):
+        config = {
+            "url":    url,
+            "method": method,
+            "timeout_seconds": timeout,
+        }
+        if body_template is not None:
+            config["body_template"] = body_template
+        if headers is not None:
+            config["headers"] = headers
+
+        r = auth_client.post("/api/v1/automations/", json={
+            "name": "Webhook test", "trigger_type": "module_event",
+            "flow": {
+                "nodes": [
+                    {"id": "n1", "type": "trigger",          "config": {"trigger_id": "test_module.test_trigger"}},
+                    {"id": "n2", "type": "outbound_webhook", "config": config},
+                ],
+                "edges": [{"from": "n1", "to": "n2"}]
+            }
+        })
+        assert r.status_code == 201, r.json()
+        return r.json()["id"]
+
+    def test_webhook_makes_http_call(self, auth_client):
+        """El nodo outbound_webhook hace una llamada HTTP real."""
+        with patch("httpx.request") as mock_req:
+            mock_req.return_value.status_code = 200
+            mock_req.return_value.is_success   = True
+            mock_req.return_value.text         = '{"ok": true}'
+
+            aid = self._make_webhook_flow(auth_client, url="https://example.com/hook")
+
+            response = auth_client.post(
+                f"/api/v1/automations/{aid}/trigger",
+                json={"payload": {"key": "value"}}
+            )
+            assert response.status_code == 202
+            mock_req.assert_called_once()
+            call_kwargs = mock_req.call_args
+            assert call_kwargs.kwargs["url"] == "https://example.com/hook"
+            assert call_kwargs.kwargs["method"] == "POST"
+
+    def test_webhook_log_contains_status_code(self, auth_client):
+        """El node_log contiene status_code y success."""
+        with patch("httpx.request") as mock_req:
+            mock_req.return_value.status_code = 200
+            mock_req.return_value.is_success   = True
+            mock_req.return_value.text         = "ok"
+
+            aid = self._make_webhook_flow(auth_client, url="https://example.com/hook")
+
+            response = auth_client.post(
+                f"/api/v1/automations/{aid}/trigger",
+                json={"payload": {}}
+            )
+            logs = response.json()["node_logs"]
+            wh_log = next(l for l in logs if l["node_type"] == "outbound_webhook")
+            assert wh_log["status"]            == "success"
+            assert wh_log["output"]["status_code"] == 200
+            assert wh_log["output"]["success"]     is True
+
+    def test_webhook_resolves_body_template(self, auth_client):
+        """Las variables {{field}} del body_template se resuelven con el payload."""
+        with patch("httpx.request") as mock_req:
+            mock_req.return_value.status_code = 200
+            mock_req.return_value.is_success   = True
+            mock_req.return_value.text         = "ok"
+
+            aid = self._make_webhook_flow(
+                auth_client,
+                url="https://example.com/hook",
+                body_template={
+                    "event":    "{{event_id}}",
+                    "user":     "{{user_name}}",
+                    "hardcoded": "fixed_value",
+                },
+            )
+
+            auth_client.post(
+                f"/api/v1/automations/{aid}/trigger",
+                json={"payload": {"event_id": "42", "user_name": "alice"}}
+            )
+
+            sent_body = mock_req.call_args.kwargs["json"]
+            assert sent_body["event"]      == "42"
+            assert sent_body["user"]       == "alice"
+            assert sent_body["hardcoded"]  == "fixed_value"
+
+    def test_webhook_resolves_nested_body_template(self, auth_client):
+        """Las variables se resuelven también en body_template anidados."""
+        with patch("httpx.request") as mock_req:
+            mock_req.return_value.status_code = 200
+            mock_req.return_value.is_success   = True
+            mock_req.return_value.text         = "ok"
+
+            aid = self._make_webhook_flow(
+                auth_client,
+                url="https://example.com/hook",
+                body_template={
+                    "data": {
+                        "id":    "{{item_id}}",
+                        "label": "{{label}}",
+                    }
+                },
+            )
+
+            auth_client.post(
+                f"/api/v1/automations/{aid}/trigger",
+                json={"payload": {"item_id": "99", "label": "test"}}
+            )
+
+            sent_body = mock_req.call_args.kwargs["json"]
+            assert sent_body["data"]["id"]    == "99"
+            assert sent_body["data"]["label"] == "test"
+
+    def test_webhook_uses_correct_method(self, auth_client):
+        """El método HTTP configurado se usa correctamente."""
+        for method in ("GET", "PUT", "PATCH"):
+            with patch("httpx.request") as mock_req:
+                mock_req.return_value.status_code = 200
+                mock_req.return_value.is_success   = True
+                mock_req.return_value.text         = "ok"
+
+                r = auth_client.post("/api/v1/automations/", json={
+                    "name": f"Webhook test {method}", "trigger_type": "module_event",
+                    "flow": {
+                        "nodes": [
+                            {"id": "n1", "type": "trigger",          "config": {"trigger_id": "test_module.test_trigger"}},
+                            {"id": "n2", "type": "outbound_webhook", "config": {"url": "https://example.com/hook", "method": method}},
+                        ],
+                        "edges": [{"from": "n1", "to": "n2"}]
+                    }
+                })
+                assert r.status_code == 201, r.json()
+                aid = r.json()["id"]
+
+                auth_client.post(
+                    f"/api/v1/automations/{aid}/trigger",
+                    json={"payload": {}}
+                )
+
+                assert mock_req.call_args.kwargs["method"] == method
+
+    def test_webhook_sends_custom_headers(self, auth_client):
+        """Los headers configurados se envían en la llamada HTTP."""
+        with patch("httpx.request") as mock_req:
+            mock_req.return_value.status_code = 200
+            mock_req.return_value.is_success   = True
+            mock_req.return_value.text         = "ok"
+
+            aid = self._make_webhook_flow(
+                auth_client,
+                url="https://example.com/hook",
+                headers={"Authorization": "Bearer secret123", "X-Source": "centro"},
+            )
+
+            auth_client.post(
+                f"/api/v1/automations/{aid}/trigger",
+                json={"payload": {}}
+            )
+
+            sent_headers = mock_req.call_args.kwargs["headers"]
+            assert sent_headers["Authorization"] == "Bearer secret123"
+            assert sent_headers["X-Source"]      == "centro"
+
+    def test_webhook_timeout_handled(self, auth_client):
+        """Un timeout devuelve success=False en el log sin romper el flujo."""
+        import httpx as httpx_lib
+
+        with patch("httpx.request", side_effect=httpx_lib.TimeoutException("timeout")):
+            aid = self._make_webhook_flow(
+                auth_client,
+                url="https://example.com/hook",
+                timeout=5,
+            )
+
+            response = auth_client.post(
+                f"/api/v1/automations/{aid}/trigger",
+                json={"payload": {}}
+            )
+            assert response.status_code == 202
+            logs   = response.json()["node_logs"]
+            wh_log = next(l for l in logs if l["node_type"] == "outbound_webhook")
+            assert wh_log["output"]["success"] is False
+            assert wh_log["output"]["error"]   == "timeout"
+
+    def test_webhook_4xx_response_success_false(self, auth_client):
+        """Un status 4xx devuelve success=False."""
+        with patch("httpx.request") as mock_req:
+            mock_req.return_value.status_code = 404
+            mock_req.return_value.is_success   = False
+            mock_req.return_value.text         = "Not Found"
+
+            aid = self._make_webhook_flow(auth_client, url="https://example.com/hook")
+
+            response = auth_client.post(
+                f"/api/v1/automations/{aid}/trigger",
+                json={"payload": {}}
+            )
+            logs   = response.json()["node_logs"]
+            wh_log = next(l for l in logs if l["node_type"] == "outbound_webhook")
+            assert wh_log["output"]["status_code"] == 404
+            assert wh_log["output"]["success"]     is False
+
+    def test_webhook_5xx_response_success_false(self, auth_client):
+        """Un status 5xx devuelve success=False."""
+        with patch("httpx.request") as mock_req:
+            mock_req.return_value.status_code = 500
+            mock_req.return_value.is_success   = False
+            mock_req.return_value.text         = "Internal Server Error"
+
+            aid = self._make_webhook_flow(auth_client, url="https://example.com/hook")
+
+            response = auth_client.post(
+                f"/api/v1/automations/{aid}/trigger",
+                json={"payload": {}}
+            )
+            logs   = response.json()["node_logs"]
+            wh_log = next(l for l in logs if l["node_type"] == "outbound_webhook")
+            assert wh_log["output"]["status_code"] == 500
+            assert wh_log["output"]["success"]     is False
+
+    def test_webhook_body_truncated_at_500_chars(self, auth_client):
+        """El body de la respuesta se trunca a 500 caracteres en el log."""
+        with patch("httpx.request") as mock_req:
+            mock_req.return_value.status_code = 200
+            mock_req.return_value.is_success   = True
+            mock_req.return_value.text         = "x" * 1000
+
+            aid = self._make_webhook_flow(auth_client, url="https://example.com/hook")
+
+            response = auth_client.post(
+                f"/api/v1/automations/{aid}/trigger",
+                json={"payload": {}}
+            )
+            logs   = response.json()["node_logs"]
+            wh_log = next(l for l in logs if l["node_type"] == "outbound_webhook")
+            assert len(wh_log["output"]["body"]) == 500
