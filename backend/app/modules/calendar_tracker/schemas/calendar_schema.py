@@ -129,7 +129,7 @@ class EventUpdate(BaseModel):
 
 
 class EventResponse(BaseModel):
-    id:               int
+    id:               Optional[int]
     user_id:          int
     reminder_id:      Optional[int]
     routine_id:       Optional[int]
