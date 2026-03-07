@@ -3,7 +3,8 @@ Endpoints de sincronización con calendarios externos.
 
 GET  /calendar/integrations/                        — listar conexiones activas
 POST /calendar/integrations/google/connect          — iniciar OAuth Google
-GET  /calendar/integrations/google/callback         — callback OAuth Google
+GET  /calendar/integrations/google/callback         — callback OAuth Google (sin auth — usa state)
+POST /calendar/integrations/apple/calendars         — listar calendarios disponibles (antes de conectar)
 POST /calendar/integrations/apple/connect           — conectar Apple CalDAV
 DELETE /calendar/integrations/{provider}/disconnect — desconectar
 POST /calendar/integrations/{provider}/sync         — sync manual
@@ -42,29 +43,42 @@ def list_connections(
 def google_connect(
     current_user = Depends(get_current_user),
 ):
-    """Devuelve la URL de autorización de Google — el cliente redirige al usuario."""
+    """Devuelve la URL de autorización de Google — el cliente abre una ventana popup."""
     url = authorize_url(state=str(current_user.id))
     return {"auth_url": url}
 
 
 @router.get("/google/callback")
 def google_callback(
-    code:         str,
-    state:        str | None = None,
-    sync_events:  bool       = True,
-    sync_routines: bool      = True,
-    calendar_id:  str | None = None,
-    db:           Session    = Depends(get_db),
-    current_user             = Depends(get_current_user),
+    code:          str,
+    state:         str | None = None,
+    sync_events:   bool       = True,
+    sync_routines: bool       = True,
+    calendar_id:   str | None = None,
+    db:            Session    = Depends(get_db),
+    # Sin get_current_user — Google redirige aquí sin el JWT de la app
+    # El user_id viaja en el parámetro `state`
 ):
-    """Callback OAuth — intercambia el code por tokens y guarda la conexión."""
+    """
+    Callback OAuth de Google.
+    Identifica al usuario por `state` (= user_id), guarda la conexión
+    y redirige al frontend para que el popup se cierre.
+    """
+    if not state:
+        raise HTTPException(status_code=400, detail="State requerido")
+
+    try:
+        user_id = int(state)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="State inválido")
+
     try:
         tokens = exchange_code(code)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error OAuth Google: {e}")
 
-    connection = sync_service.create_google_connection(
-        user_id       = current_user.id,
+    sync_service.create_google_connection(
+        user_id       = user_id,
         access_token  = tokens["access_token"],
         refresh_token = tokens["refresh_token"],
         expires_at    = tokens["expires_at"],
@@ -73,10 +87,30 @@ def google_callback(
         sync_routines = sync_routines,
         db            = db,
     )
-    return CalendarConnectionResponse.model_validate(connection)
+
+    from app.core.config import settings
+    frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+    return RedirectResponse(url=f"{frontend_url}/calendar?connected=google")
 
 
 # ── Apple ─────────────────────────────────────────────────────────────────────
+
+@router.post("/apple/calendars")
+def list_apple_calendars(
+    body: AppleConnectRequest,
+    current_user = Depends(get_current_user),
+):
+    """
+    Lista los calendarios disponibles en la cuenta de Apple antes de conectar.
+    Permite al usuario elegir en cuál sincronizar.
+    """
+    try:
+        from app.modules.calendar_tracker.integrations.apple.client import AppleCalendarClient
+        client = AppleCalendarClient(username=body.username, password=body.password)
+        return client.list_calendars()
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"No se pudo conectar con Apple: {e}")
+
 
 @router.post("/apple/connect", response_model=CalendarConnectionResponse)
 def apple_connect(
