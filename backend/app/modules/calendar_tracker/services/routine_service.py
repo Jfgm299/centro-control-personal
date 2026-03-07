@@ -27,15 +27,29 @@ def _get_routine(db: Session, user_id: int, routine_id: int) -> Routine:
         raise RoutineNotFoundError(routine_id)
     return routine
 
-
 def _expand_routine(routine: Routine, start: datetime, end: datetime) -> list[dict]:
     """
     Expande la RRULE de una rutina en ocurrencias concretas dentro del rango,
     aplicando las excepciones registradas.
     """
+    if start.tzinfo is not None:
+        start = start.replace(tzinfo=None)
+    if end.tzinfo is not None:
+        end = end.replace(tzinfo=None)
+
+    # ── DEBUG temporal ──
+    print(f"[ROUTINE] '{routine.title}' | rrule: {routine.rrule}")
+    print(f"[ROUTINE] valid_from: {routine.valid_from} | valid_until: {routine.valid_until}")
+    print(f"[ROUTINE] start_time: {routine.start_time} | end_time: {routine.end_time}")
+    print(f"[ROUTINE] range: {start} → {end}")
+
     try:
-        base_rule = rrulestr(routine.rrule, dtstart=datetime.combine(routine.valid_from, routine.start_time))
-    except Exception:
+        base_rule = rrulestr(
+            routine.rrule,
+            dtstart=datetime.combine(routine.valid_from, routine.start_time),
+        )
+    except Exception as e:
+        print(f"[ROUTINE] ERROR parsing rrule: {e}")
         return []
 
     ruleset = rruleset()
@@ -69,8 +83,18 @@ def _expand_routine(routine: Routine, start: datetime, end: datetime) -> list[di
             occ_start = dt
             occ_end   = datetime.combine(occ_date, routine.end_time)
 
+        # Serializar categoría (no pasar objeto SQLAlchemy a Pydantic)
+        category_obj = None
+        if routine.category:
+            category_obj = {
+                "id":    routine.category.id,
+                "name":  routine.category.name,
+                "color": routine.category.color,
+                "icon":  getattr(routine.category, "icon", None),
+            }
+
         occurrences.append({
-            "id":               None,          # instancias virtuales no tienen id de DB
+            "id":               None,
             "user_id":          routine.user_id,
             "routine_id":       routine.id,
             "reminder_id":      None,
@@ -90,8 +114,10 @@ def _expand_routine(routine: Routine, start: datetime, end: datetime) -> list[di
             "is_cancelled":     False,
             "created_at":       datetime.combine(routine.valid_from, time()),
             "updated_at":       None,
-            "category":         routine.category,
+            "category":         category_obj,
         })
+
+    print(f"[ROUTINE] '{routine.title}' → {len(occurrences)} ocurrencias en el rango")
     return occurrences
 
 
