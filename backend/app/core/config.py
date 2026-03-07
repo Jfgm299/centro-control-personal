@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    ENCRYPTION_KEY: str = ''
+
     # API
     API_VERSION: str = "v1"
     PROJECT_NAME: str = "Centro Control"
