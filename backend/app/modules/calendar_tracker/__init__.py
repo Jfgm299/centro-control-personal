@@ -1,5 +1,8 @@
-from .calendar_router import router
+from .routers.calendar_router import router
+from .routers.sync_router import router as sync_router
 from .handlers import register_exception_handlers as register_handlers
+
+router.include_router(sync_router)
 
 TAGS = [
     {"name": "Calendar",    "description": "Gestion de eventos, recordatorios y rutinas"},
@@ -23,6 +26,7 @@ def _start_scheduler() -> None:
         job_check_reminders_due,
         job_check_free_windows,
         job_check_overdue_reminders,
+        job_sync_calendars,
     )
 
     scheduler = BackgroundScheduler(timezone="UTC")
@@ -39,6 +43,8 @@ def _start_scheduler() -> None:
     scheduler.add_job(job_check_free_windows,     "interval", minutes=30,   id="free_windows")
     # Recordatorios vencidos acumulados — una vez al día a las 9:00 UTC
     scheduler.add_job(job_check_overdue_reminders,"cron",     hour=9,       id="overdue_reminders")
+    # Añadir este job:
+    scheduler.add_job(job_sync_calendars, "interval", minutes=10, id="sync_calendars")
 
     scheduler.start()
     import logging

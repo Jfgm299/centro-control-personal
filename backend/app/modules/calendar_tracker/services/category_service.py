@@ -1,7 +1,7 @@
 import random
 from sqlalchemy.orm import Session
 from ..models.category import Category
-from ..calendar_schema import CategoryCreate, CategoryUpdate
+from ..schemas.calendar_schema import CategoryCreate, CategoryUpdate
 from ..exceptions import CategoryNotFoundError, CategoryNameAlreadyExistsError
 
 PALETTE = [

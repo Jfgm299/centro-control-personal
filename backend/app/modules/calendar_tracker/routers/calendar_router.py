@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.auth.user import User
 
-from .calendar_schema import (
+from ..schemas.calendar_schema import (
     CategoryCreate,
     CategoryUpdate,
     CategoryResponse,
@@ -26,16 +26,16 @@ from .calendar_schema import (
     FcmTokenCreate,
     FcmTokenResponse,
 )
-from .enums import ReminderStatus, ReminderPriority
-from .services import (
+from ..enums import ReminderStatus, ReminderPriority
+from ..services import (
     CategoryService,
     ReminderService,
     EventService,
     RoutineService,
     NotificationService,
 )
-from .models.fcm_token import FcmToken
-from .exceptions import FcmTokenNotFoundError
+from ..models.fcm_token import FcmToken
+from ..exceptions import FcmTokenNotFoundError
 
 router = APIRouter(prefix="/calendar", tags=["Calendar"])
 

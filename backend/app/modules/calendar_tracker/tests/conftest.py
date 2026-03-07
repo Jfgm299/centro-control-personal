@@ -63,9 +63,12 @@ def _future_range(offset_hours: int = 2, duration_hours: int = 1) -> dict:
 def event_data():
     now   = datetime.now(timezone.utc)
     start = now + timedelta(minutes=30)
-    # Si pasamos de las 23:00 UTC, usamos el inicio del día siguiente
-    # para que start < end y ambos sean coherentes
-    end   = start + timedelta(hours=1)
+
+    # Si start cae en otro día (después de las 23:30 UTC), retrocedemos al mediodía de hoy
+    if start.date() != now.date():
+        start = now.replace(hour=12, minute=0, second=0, microsecond=0)
+
+    end = start + timedelta(hours=1)
     return {
         "title":    "Clase de algebra",
         "start_at": start.isoformat(),

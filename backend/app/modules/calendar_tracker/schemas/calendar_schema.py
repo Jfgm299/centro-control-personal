@@ -3,7 +3,7 @@ from datetime import date, datetime, time
 from typing import Optional
 from pydantic import BaseModel, Field, model_validator
 
-from .enums import ReminderStatus, ReminderPriority, RoutineExceptionAction
+from ..enums import ReminderStatus, ReminderPriority, RoutineExceptionAction
 
 
 # ══════════════════════════════════════════════════════════════════════════════

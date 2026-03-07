@@ -187,3 +187,24 @@ def job_check_overdue_reminders() -> None:
         logger.error(f"job_check_overdue_reminders error: {e}")
     finally:
         db.close()
+
+def job_sync_calendars() -> None:
+    db = _get_db()
+    try:
+        from app.modules.calendar_tracker.models.calendar_sync import CalendarConnection
+        from app.modules.calendar_tracker.services.sync_service import sync_service
+
+        connections = db.query(CalendarConnection).filter(
+            CalendarConnection.is_active == True
+        ).all()
+
+        for connection in connections:
+            try:
+                sync_service.sync(connection, db)
+            except Exception as e:
+                logger.error(f"job_sync_calendars error para connection {connection.id}: {e}")
+
+    except Exception as e:
+        logger.error(f"job_sync_calendars error: {e}")
+    finally:
+        db.close()

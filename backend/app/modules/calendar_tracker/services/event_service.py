@@ -4,7 +4,7 @@ from typing import Optional
 from ..models.event import Event
 from ..models.reminder import Reminder
 from ..enums import ReminderStatus
-from ..calendar_schema import EventCreate, EventUpdate, ReminderSchedule
+from ..schemas.calendar_schema import EventCreate, EventUpdate, ReminderSchedule
 from ..exceptions import (
     EventNotFoundError,
     ReminderNotFoundError,

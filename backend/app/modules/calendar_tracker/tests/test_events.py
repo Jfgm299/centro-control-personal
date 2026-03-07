@@ -107,7 +107,16 @@ class TestGetEvent:
     def test_get_range(self, auth_client, event_id):
         start = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
         end   = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
+    
+        # Debug — ver qué tiene el evento
+        event = auth_client.get(f"/api/v1/calendar/events/{event_id}").json()
+        print(f"\nEVENTO start_at: {event['start_at']}")
+        print(f"RANGO start: {start}")
+        print(f"RANGO end: {end}")
+    
         response = auth_client.get("/api/v1/calendar/events", params={"start": start, "end": end})
+        print(f"EVENTOS EN RANGO: {[e['id'] for e in response.json()]}")
+    
         assert response.status_code == 200
         ids = [e["id"] for e in response.json() if e["id"] is not None]
         assert event_id in ids
@@ -124,6 +133,8 @@ class TestGetEvent:
         assert auth_client.get(
             "/api/v1/calendar/events", params={"start": start, "end": end}
         ).status_code == 422
+    
+    
 
 
 class TestUpdateEvent:

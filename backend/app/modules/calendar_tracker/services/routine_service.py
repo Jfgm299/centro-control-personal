@@ -4,7 +4,7 @@ from typing import Optional
 from dateutil.rrule import rruleset, rrulestr
 from ..models.routine import Routine
 from ..models.routine_exception import RoutineException
-from ..calendar_schema import (
+from ..schemas.calendar_schema import (
     RoutineCreate, RoutineUpdate,
     RoutineExceptionCreate, EventResponse,
 )

@@ -56,4 +56,18 @@ USER_RELATIONSHIPS = [
         "cascade": "all, delete-orphan",
         "uselist": True,
     },
+    {
+        "name": "calendar_connections",
+        "target": "CalendarConnection",
+        "back_populates": "user",
+        "cascade": "all, delete-orphan",
+        "uselist": True,
+    },
+    {
+        "name": "sync_logs",
+        "target": "SyncLog",
+        "back_populates": "user",
+        "cascade": "all, delete-orphan",
+        "uselist": True,
+    },
 ]

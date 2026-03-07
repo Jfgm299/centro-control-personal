@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from ..models.reminder import Reminder
 from ..enums import ReminderStatus, ReminderPriority
-from ..calendar_schema import ReminderCreate, ReminderUpdate
+from ..schemas.calendar_schema import ReminderCreate, ReminderUpdate
 from ..exceptions import ReminderNotFoundError, ReminderAlreadyScheduledError
 
 
