@@ -37,12 +37,6 @@ def _expand_routine(routine: Routine, start: datetime, end: datetime) -> list[di
     if end.tzinfo is not None:
         end = end.replace(tzinfo=None)
 
-    # ── DEBUG temporal ──
-    print(f"[ROUTINE] '{routine.title}' | rrule: {routine.rrule}")
-    print(f"[ROUTINE] valid_from: {routine.valid_from} | valid_until: {routine.valid_until}")
-    print(f"[ROUTINE] start_time: {routine.start_time} | end_time: {routine.end_time}")
-    print(f"[ROUTINE] range: {start} → {end}")
-
     try:
         base_rule = rrulestr(
             routine.rrule,
@@ -83,14 +77,18 @@ def _expand_routine(routine: Routine, start: datetime, end: datetime) -> list[di
             occ_start = dt
             occ_end   = datetime.combine(occ_date, routine.end_time)
 
-        # Serializar categoría (no pasar objeto SQLAlchemy a Pydantic)
+        # Serializar categoría con todos los campos que requiere CategoryResponse
         category_obj = None
         if routine.category:
             category_obj = {
-                "id":    routine.category.id,
-                "name":  routine.category.name,
-                "color": routine.category.color,
-                "icon":  getattr(routine.category, "icon", None),
+                "id":                       routine.category.id,
+                "name":                     routine.category.name,
+                "color":                    routine.category.color,
+                "icon":                     getattr(routine.category, "icon", None),
+                "user_id":                  routine.category.user_id,
+                "default_enable_dnd":       routine.category.default_enable_dnd,
+                "default_reminder_minutes": routine.category.default_reminder_minutes,
+                "created_at":               routine.category.created_at,
             }
 
         occurrences.append({
