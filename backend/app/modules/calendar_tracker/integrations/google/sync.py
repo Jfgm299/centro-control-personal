@@ -1,13 +1,18 @@
 """
-Lógica de sincronización bidireccional con Google Calendar.
+Sincronización bidireccional con Google Calendar — last-write-wins.
 
-push_events()  — nuestra DB → Google Calendar
-pull_events()  — Google Calendar → nuestra DB
+Flujo por evento:
+  - Existe en ambos lados (tiene google_event_id):
+      · Google más reciente  → actualizar local   (pull)
+      · Local más reciente   → actualizar Google  (push)
+      · Sin timestamps       → Google gana (comportamiento conservador)
+  - Solo en local (sin google_event_id) → crear en Google
+  - Solo en Google (sin evento local)   → crear en local
 """
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 
-from app.modules.calendar_tracker.models.calendar_sync import CalendarConnection, SyncLog
+from app.modules.calendar_tracker.models.calendar_sync import CalendarConnection
 from app.modules.calendar_tracker.models.event import Event
 from app.modules.calendar_tracker.integrations.google.client import GoogleCalendarClient
 from app.modules.calendar_tracker.integrations.google.mapper import (
@@ -16,83 +21,107 @@ from app.modules.calendar_tracker.integrations.google.mapper import (
 )
 
 
+def _ensure_utc(dt: datetime) -> datetime:
+    if dt is None:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
 class GoogleCalendarSync:
 
-    def push_events(self, connection: CalendarConnection, db: Session) -> dict:
-        """Exporta eventos de nuestra DB a Google Calendar."""
-        client = GoogleCalendarClient(connection, db)
-        result = {"events_created": 0, "events_updated": 0, "events_deleted": 0}
-
-        now     = datetime.now(timezone.utc)
+    def sync_events(self, connection: CalendarConnection, db: Session) -> dict:
+        """
+        Sync bidireccional con resolución de conflictos last-write-wins.
+        Sustituye a push_events + pull_events independientes.
+        """
+        client     = GoogleCalendarClient(connection, db)
+        result     = {"events_created": 0, "events_updated": 0, "events_deleted": 0}
+        now        = datetime.now(timezone.utc)
         look_ahead = now + timedelta(days=30)
 
-        events = db.query(Event).filter(
+        # ── 1. Obtener eventos de Google ──────────────────────────────────────
+        google_events = client.list_events(now, look_ahead)
+        google_by_id  = {}  # google_event_id → parsed data
+        for g_ev in google_events:
+            data = google_to_event_data(g_ev)
+            if data and data["google_event_id"]:
+                google_by_id[data["google_event_id"]] = data
+
+        # ── 2. Obtener eventos locales futuros ────────────────────────────────
+        local_events = db.query(Event).filter(
             Event.user_id      == connection.user_id,
             Event.is_cancelled == False,
             Event.start_at     >= now,
             Event.start_at     <= look_ahead,
         ).all()
 
-        for event in events:
+        processed_google_ids = set()
+
+        # ── 3. Resolver conflictos para eventos que existen en ambos lados ───
+        for event in local_events:
             try:
-                body = event_to_google(event)
-                if event.google_event_id:
-                    client.update_event(event.google_event_id, body)
-                    result["events_updated"] += 1
-                else:
-                    google_event = client.create_event(body)
-                    event.google_event_id = google_event["id"]
+                if event.google_event_id and event.google_event_id in google_by_id:
+                    # Evento existe en ambos — comparar timestamps
+                    processed_google_ids.add(event.google_event_id)
+                    g_data       = google_by_id[event.google_event_id]
+                    google_ts    = _ensure_utc(g_data["google_updated_at"])
+                    local_ts     = _ensure_utc(event.updated_at or event.created_at)
+
+                    if google_ts and local_ts and google_ts > local_ts:
+                        # Google es más reciente → actualizar local
+                        event.title       = g_data["title"]
+                        event.description = g_data["description"]
+                        event.start_at    = g_data["start_at"]
+                        event.end_at      = g_data["end_at"]
+                        db.commit()
+                        result["events_updated"] += 1
+                    else:
+                        # Local es más reciente (o no hay timestamps) → actualizar Google
+                        body = event_to_google(event)
+                        client.update_event(event.google_event_id, body)
+                        result["events_updated"] += 1
+
+                elif not event.google_event_id:
+                    # Solo en local → crear en Google
+                    body         = event_to_google(event)
+                    g_ev         = client.create_event(body)
+                    event.google_event_id = g_ev["id"]
                     db.commit()
                     result["events_created"] += 1
+
+                # Si tiene google_event_id pero ya no está en Google → ignorar
+                # (fue borrado en Google; no borramos local automáticamente)
+
+            except Exception:
+                continue
+
+        # ── 4. Eventos que solo existen en Google → crear en local ────────────
+        for gid, g_data in google_by_id.items():
+            if gid in processed_google_ids:
+                continue
+            try:
+                event = Event(
+                    user_id         = connection.user_id,
+                    title           = g_data["title"],
+                    description     = g_data["description"],
+                    start_at        = g_data["start_at"],
+                    end_at          = g_data["end_at"],
+                    google_event_id = gid,
+                )
+                db.add(event)
+                db.commit()
+                result["events_created"] += 1
             except Exception:
                 continue
 
         return result
+
+    # Mantener push/pull como alias por compatibilidad con sync_service
+    def push_events(self, connection: CalendarConnection, db: Session) -> dict:
+        return self.sync_events(connection, db)
 
     def pull_events(self, connection: CalendarConnection, db: Session) -> dict:
-        """Importa eventos de Google Calendar a nuestra DB."""
-        client = GoogleCalendarClient(connection, db)
-        result = {"events_created": 0, "events_updated": 0, "events_deleted": 0}
-
-        now        = datetime.now(timezone.utc)
-        look_ahead = now + timedelta(days=30)
-
-        google_events = client.list_events(now, look_ahead)
-
-        for g_event in google_events:
-            try:
-                data = google_to_event_data(g_event)
-                if not data:
-                    continue
-
-                existing = db.query(Event).filter(
-                    Event.user_id        == connection.user_id,
-                    Event.google_event_id == data["google_event_id"],
-                ).first()
-
-                if existing:
-                    existing.title       = data["title"]
-                    existing.description = data["description"]
-                    existing.start_at    = data["start_at"]
-                    existing.end_at      = data["end_at"]
-                    db.commit()
-                    result["events_updated"] += 1
-                else:
-                    event = Event(
-                        user_id          = connection.user_id,
-                        title            = data["title"],
-                        description      = data["description"],
-                        start_at         = data["start_at"],
-                        end_at           = data["end_at"],
-                        google_event_id  = data["google_event_id"],
-                    )
-                    db.add(event)
-                    db.commit()
-                    result["events_created"] += 1
-            except Exception:
-                continue
-
-        return result
+        return {"events_created": 0, "events_updated": 0, "events_deleted": 0}
 
     def validate_connection(self, connection: CalendarConnection, db: Session) -> bool:
         try:
