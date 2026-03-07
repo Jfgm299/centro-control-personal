@@ -12,7 +12,7 @@ from app.modules.calendar_tracker.manifest import get_settings
 
 def get_fernet() -> Fernet:
     cfg = get_settings()
-    return Fernet(cfg["ENCRYPTION_KEY"].encode())
+    return Fernet(cfg["ENCRYPTION_KEY"].strip().encode())
 
 
 def encrypt(value: str) -> str:
