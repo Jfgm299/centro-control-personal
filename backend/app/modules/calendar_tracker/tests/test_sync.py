@@ -791,3 +791,68 @@ class TestGoogleIntegration:
         time_max = now + timedelta(days=7),
     )
         assert isinstance(events, list)
+
+
+# ── Test de integración real con Apple ────────────────────────────────────────
+
+APPLE_TEST_USERNAME = os.getenv("APPLE_TEST_USERNAME")
+APPLE_TEST_PASSWORD = os.getenv("APPLE_TEST_PASSWORD")
+
+
+@pytest.mark.skipif(
+    not APPLE_TEST_USERNAME or not APPLE_TEST_PASSWORD,
+    reason="APPLE_TEST_USERNAME/PASSWORD no configurados — test de integración real omitido"
+)
+class TestAppleIntegration:
+
+    def test_validate_credentials_real(self):
+        """Verifica que las credenciales de Apple son válidas."""
+        from app.modules.calendar_tracker.integrations.apple.auth import validate_credentials
+
+        result = validate_credentials(APPLE_TEST_USERNAME, APPLE_TEST_PASSWORD)
+        assert result is True
+
+    def test_list_calendars_real(self):
+        """Lista los calendarios reales de la cuenta de Apple."""
+        from app.modules.calendar_tracker.integrations.apple.client import AppleCalendarClient
+
+        client    = AppleCalendarClient(APPLE_TEST_USERNAME, APPLE_TEST_PASSWORD)
+        calendars = client.list_calendars()
+        assert isinstance(calendars, list)
+        assert len(calendars) > 0
+
+    def test_create_and_delete_event_real(self):
+        from datetime import datetime, timezone, timedelta
+        from app.modules.calendar_tracker.integrations.apple.client import AppleCalendarClient
+
+        client   = AppleCalendarClient(APPLE_TEST_USERNAME, APPLE_TEST_PASSWORD)
+        now      = datetime.now(timezone.utc)
+        ical_str = (
+        "BEGIN:VCALENDAR\r\n"
+        "VERSION:2.0\r\n"
+        "BEGIN:VEVENT\r\n"
+        "UID:test-integration-uid-brainli\r\n"
+        "SUMMARY:[TEST] Evento de integración — borrar\r\n"
+        f"DTSTART:{now + timedelta(hours=1):%Y%m%dT%H%M%SZ}\r\n"
+        f"DTEND:{now + timedelta(hours=2):%Y%m%dT%H%M%SZ}\r\n"
+        "END:VEVENT\r\n"
+        "END:VCALENDAR\r\n"
+    )
+
+        created = client.create_event(ical_str)
+        assert created is not None
+
+        client.delete_event("test-integration-uid-brainli")
+
+
+    def test_list_events_real(self):
+        from datetime import datetime, timezone, timedelta
+        from app.modules.calendar_tracker.integrations.apple.client import AppleCalendarClient
+
+        client = AppleCalendarClient(APPLE_TEST_USERNAME, APPLE_TEST_PASSWORD)
+        now    = datetime.now(timezone.utc)
+        events = client.list_events(
+        start = now,
+        end   = now + timedelta(days=7),
+    )
+        assert isinstance(events, list)
