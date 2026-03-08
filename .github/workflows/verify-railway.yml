@@ -1,0 +1,35 @@
+name: Verify Railway Deployment
+
+on:
+  push:
+    branches: [develop, main]
+
+jobs:
+  verify:
+    name: Check Railway deployment health
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for Railway deployment
+        run: sleep 60
+
+      - name: Check health endpoint
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            URL="${{ secrets.PRODUCTION_HEALTH_URL }}"
+          else
+            URL="${{ secrets.STAGING_HEALTH_URL }}"
+          fi
+
+          for i in {1..10}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL/health")
+            if [ "$STATUS" == "200" ]; then
+              echo "✅ Health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "⏳ Health check returned $STATUS, waiting... (attempt $i/10)"
+            sleep 30
+          done
+
+          echo "❌ Health check failed after 10 attempts"
+          exit 1
