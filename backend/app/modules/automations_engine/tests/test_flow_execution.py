@@ -753,12 +753,12 @@ class TestOutboundWebhookNode:
             assert wh_log["output"]["status_code"] == 500
             assert wh_log["output"]["success"]     is False
 
-    def test_webhook_body_truncated_at_500_chars(self, auth_client):
-        """El body de la respuesta se trunca a 500 caracteres en el log."""
+    def test_webhook_body_truncated_at_1000_chars(self, auth_client):
+        """El body de la respuesta se trunca a 1000 caracteres en el log."""
         with patch("httpx.request") as mock_req:
             mock_req.return_value.status_code = 200
             mock_req.return_value.is_success   = True
-            mock_req.return_value.text         = "x" * 1000
+            mock_req.return_value.text         = "x" * 2000
 
             aid = self._make_webhook_flow(auth_client, url="https://example.com/hook")
 
@@ -768,4 +768,4 @@ class TestOutboundWebhookNode:
             )
             logs   = response.json()["node_logs"]
             wh_log = next(l for l in logs if l["node_type"] == "outbound_webhook")
-            assert len(wh_log["output"]["body"]) == 500
+            assert len(wh_log["output"]["body"]) == 1000
