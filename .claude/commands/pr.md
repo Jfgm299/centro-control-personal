@@ -28,4 +28,6 @@ Crea un Pull Request para la rama actual:
 6. Muestra la URL del PR al usuario y espera confirmación.
 7. Cuando el usuario confirme que todo está correcto:
    - Haz merge a `develop`: `gh pr merge <número> --merge`
+   - Cambia a `develop`: `git checkout develop`
    - Borra la rama temporal: `git branch -d <rama>` y `git push origin --delete <rama>`
+   - Actualiza local: `git pull` — **siempre, sin excepción, para que la siguiente rama salga de develop actualizado**
