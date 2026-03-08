@@ -22,3 +22,10 @@ Crea un Pull Request para la rama actual:
 ## Notas
 <migraciones pendientes, breaking changes, dependencias, etc.>
 ```
+
+## Después de crear el PR
+
+6. Muestra la URL del PR al usuario y espera confirmación.
+7. Cuando el usuario confirme que todo está correcto:
+   - Haz merge a `develop`: `gh pr merge <número> --merge`
+   - Borra la rama temporal: `git branch -d <rama>` y `git push origin --delete <rama>`
