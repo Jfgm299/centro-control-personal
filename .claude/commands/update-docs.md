@@ -25,3 +25,7 @@ Analiza los cambios recientes y actualiza la documentación en `.claude/docs/` p
 4. **Editar los docs** con la información actualizada. Ser preciso — no reescribir secciones que no cambiaron.
 
 5. **Confirmar** qué archivos se actualizaron y qué se cambió en cada uno.
+
+## Cambios que afectan al frontend
+
+Si el cambio afecta a la interfaz backend↔frontend (endpoints nuevos o modificados, cambios en schemas de respuesta, módulos nuevos), actualizar también el `shared-context.md` del repo del frontend (`centro-control-app/.claude/docs/shared-context.md`) para mantenerlo sincronizado.
