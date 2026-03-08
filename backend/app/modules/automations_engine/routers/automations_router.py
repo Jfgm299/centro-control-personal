@@ -1,4 +1,6 @@
+import json
 from fastapi import APIRouter, Depends, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
 from ..schemas import AutomationCreate, AutomationUpdate, AutomationFlowUpdate, AutomationResponse
@@ -85,3 +87,63 @@ def trigger_automation(
         execution = execution_service.mark_failed(execution, result.get("error", ""), result["node_logs"], db)
 
     return execution
+
+
+@router.post("/{automation_id}/trigger/stream")
+def trigger_automation_stream(
+    automation_id: int,
+    data: ExecutionTriggerRequest,
+    db:   Session = Depends(get_db),
+    user: User    = Depends(get_current_user),
+):
+    """
+    Ejecuta la automatización y hace streaming SSE de cada nodo en tiempo real.
+    Emite: node_start → node → node_start → node → ... → done
+    El evento "done" incluye node_logs completos para guardar la ejecución en el historial.
+    """
+    automation = automation_service.get_by_id(automation_id, db, user_id=user.id)
+    execution  = execution_service.create(automation_id, user.id, data.payload, db)
+    execution  = execution_service.mark_running(execution, db)
+
+    # Capturar IDs antes de que la sesión se cierre al retornar el endpoint
+    automation_id_val = automation.id
+    execution_id_val  = execution.id
+    user_id_val       = user.id
+    payload_val       = data.payload
+
+    def generate():
+        from app.core.database import SessionLocal
+        stream_db = SessionLocal()
+        try:
+            from ..models.automation import Automation
+            from ..models.execution import Execution
+            stream_automation = stream_db.get(Automation, automation_id_val)
+            stream_execution  = stream_db.get(Execution, execution_id_val)
+            final_event       = None
+
+            for event in flow_executor.execute_stream(stream_automation, payload_val, stream_db, user_id_val):
+                yield f"data: {json.dumps(event)}\n\n"
+                if event["type"] == "done":
+                    final_event = event
+
+            if final_event:
+                if final_event["status"] == "success":
+                    execution_service.mark_success(stream_execution, final_event["node_logs"], stream_db)
+                else:
+                    execution_service.mark_failed(
+                        stream_execution,
+                        final_event.get("error_message", ""),
+                        final_event["node_logs"],
+                        stream_db,
+                    )
+        finally:
+            stream_db.close()
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control":    "no-cache",
+            "X-Accel-Buffering": "no",   # evita que nginx bufferice la respuesta
+        },
+    )

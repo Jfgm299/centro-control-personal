@@ -23,7 +23,7 @@ def execute(node_config: dict, ctx: dict, db, user_id: int) -> dict[str, Any]:
         return {
             "status_code": response.status_code,
             "success":     response.is_success,
-            "body":        response.text[:500],
+            "body":        response.text[:1000],
         }
     except httpx.TimeoutException:
         return {"success": False, "error": "timeout"}
