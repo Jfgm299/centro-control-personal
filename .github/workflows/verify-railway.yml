@@ -22,7 +22,7 @@ jobs:
           fi
 
           for i in {1..10}; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL/health")
+            STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" "$URL/health")
             if [ "$STATUS" == "200" ]; then
               echo "✅ Health check passed (attempt $i)"
               exit 0
