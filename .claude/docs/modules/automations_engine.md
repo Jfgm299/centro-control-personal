@@ -37,9 +37,9 @@ Un flujo (`Automation.flow`) es un JSON con `nodes` y `edges`:
 ```json
 {
   "nodes": [
-    {"id": "n1", "type": "trigger", "config": {"ref": "calendar_tracker.event_start", ...}},
+    {"id": "n1", "type": "trigger", "config": {"trigger_id": "calendar_tracker.event_start", ...}},
     {"id": "n2", "type": "condition", "config": {"field": "event.category_id", "op": "eq", "value": 5}},
-    {"id": "n3", "type": "action", "config": {"ref": "calendar_tracker.create_reminder", ...}}
+    {"id": "n3", "type": "action", "config": {"action_id": "calendar_tracker.create_reminder", ...}}
   ],
   "edges": [
     {"from": "n1", "to": "n2"},
@@ -47,6 +47,8 @@ Un flujo (`Automation.flow`) es un JSON con `nodes` y `edges`:
   ]
 }
 ```
+
+**`trigger_ref` en el modelo `Automation`:** campo top-level que replica el `trigger_id` del nodo trigger. Lo usa el `automation_dispatcher` de cada módulo para buscar automations suscritas a un trigger concreto. `automation_service` lo auto-deriva del nodo trigger del flow si no se envía explícitamente — el frontend no necesita enviarlo.
 
 **Edge `when`:** `null` = siempre, `"true"` = si condition fue true, `"false"` = si condition fue false.
 
