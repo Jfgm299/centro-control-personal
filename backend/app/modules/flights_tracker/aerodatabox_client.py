@@ -1,3 +1,4 @@
+import logging
 import math
 import httpx
 from datetime import datetime
@@ -10,6 +11,7 @@ from .exceptions import (
 )
 from .flight import FlightStatus
 
+logger = logging.getLogger(__name__)
 
 STATUS_MAP = {
     "Unknown":           FlightStatus.unknown,
@@ -48,6 +50,7 @@ class AeroDataBoxClient:
             async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
                 response = await client.get(url, headers=self.HEADERS, params=params)
 
+                logger.info("AeroDataBox response: %s %s", response.status_code, url)
                 if response.status_code == 204:
                     raise FlightNotFoundInAPIError(flight_number, date)
                 if response.status_code == 404:
@@ -55,7 +58,11 @@ class AeroDataBoxClient:
                 if response.status_code == 429:
                     raise AeroDataBoxRateLimitError()
                 if response.status_code >= 500:
+                    logger.error("AeroDataBox server error: %s body=%s", response.status_code, response.text[:200])
                     raise AeroDataBoxError()
+                if response.status_code >= 400:
+                    logger.error("AeroDataBox client error: %s body=%s", response.status_code, response.text[:200])
+                    response.raise_for_status()
 
                 response.raise_for_status()
 
@@ -66,12 +73,14 @@ class AeroDataBoxClient:
 
                 return flights[0]
 
-        except httpx.TimeoutException:
+        except httpx.TimeoutException as e:
+            logger.error("AeroDataBox timeout: %s", e)
             raise AeroDataBoxTimeoutError()
         except (FlightNotFoundInAPIError, AeroDataBoxRateLimitError,
                 AeroDataBoxError, AeroDataBoxTimeoutError):
             raise
-        except httpx.HTTPError:
+        except httpx.HTTPError as e:
+            logger.error("AeroDataBox HTTP error: %s", e)
             raise AeroDataBoxError()
 
     def parse_flight_data(self, raw: dict) -> dict:
