@@ -149,6 +149,25 @@ def register_exception_handlers(app):
 
 ---
 
+## `get_settings()` en `manifest.py` — Patrón Correcto
+
+**Problema:** pydantic-settings v2 **no lee variables no declaradas como campos** del entorno del sistema. Solo las lee del `.env`. En Railway (y cualquier entorno sin `.env`) las vars llegan vacías si solo se usa `getattr(settings, "VAR", "")`.
+
+**Patrón correcto:**
+```python
+def get_settings():
+    import os
+    from app.core.config import settings
+    return {
+        "MY_API_KEY": os.environ.get("MY_API_KEY") or getattr(settings, "MY_API_KEY", ""),
+        "MY_BASE_URL": os.environ.get("MY_BASE_URL") or getattr(settings, "MY_BASE_URL", "https://default.example.com"),
+    }
+```
+
+`os.environ` tiene el valor en Railway → lo usa. En local con `.env`, `os.environ` también lo tiene (Docker inyecta el `.env` como env vars del contenedor) → también funciona. El `getattr` queda como fallback por si acaso.
+
+---
+
 ## Automation Handler Convention
 
 **Trigger handler** — indica si la condición se cumplió:

@@ -28,6 +28,8 @@ user.flights  # List[Flight]
   - `AERODATABOX_BASE_URL` — default: `https://aerodatabox.p.rapidapi.com`
   - `AERODATABOX_HOST` — default: `aerodatabox.p.rapidapi.com`
 
+> **Nota Railway:** `manifest.get_settings()` usa `os.environ` como fuente primaria. pydantic-settings v2 no lee vars no declaradas del entorno del sistema. Ver patrón en `patterns.md`.
+
 ## Structure
 
 ```

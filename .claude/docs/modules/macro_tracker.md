@@ -30,6 +30,8 @@ user.user_goal      # UserGoal  (uselist=False — relación uno a uno)
 - **Open Food Facts API** — `OFF_BASE_URL` en `.env` (default: `https://world.openfoodfacts.org`)
 - No requiere API key
 
+> **Nota Railway:** `manifest.get_settings()` usa `os.environ` como fuente primaria. Ver patrón en `patterns.md`.
+
 ## Structure
 
 ```
