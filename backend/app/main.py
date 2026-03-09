@@ -74,6 +74,17 @@ for module_name, module in loaded_modules:
 
 print(f"\n✅ {len(loaded_modules)} módulos cargados\n")
 
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    Arranca schedulers que necesitan esperar a que la app esté completamente
+    inicializada (modelos, relaciones y mappers ya configurados).
+    """
+    from app.modules.automations_engine.services.cron_scheduler_service import start_cron_scheduler
+    start_cron_scheduler()
+
+
 # ── Endpoints base ────────────────────────────────────────────────────────────
 @app.get("/")
 def root():
