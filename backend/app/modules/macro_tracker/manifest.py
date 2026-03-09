@@ -4,9 +4,10 @@ SCHEMA_NAME = "macro_tracker"
 # Se leen del mismo .env que el core. Si no existen, usan el default.
 def get_settings():
     """Lazy import para evitar importar Settings antes de que esté lista."""
+    import os
     from app.core.config import settings
     return {
-        "OFF_BASE_URL": getattr(settings, "OFF_BASE_URL", "https://world.openfoodfacts.org"),
+        "OFF_BASE_URL": os.environ.get("OFF_BASE_URL") or getattr(settings, "OFF_BASE_URL", "https://world.openfoodfacts.org"),
     }
 
 
