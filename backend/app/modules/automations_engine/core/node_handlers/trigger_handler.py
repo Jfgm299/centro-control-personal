@@ -1,6 +1,6 @@
 import importlib
 from typing import Any
-from ...core.registry import registry
+from ..registry import registry
 from .stop_handler import StopExecution
 
 

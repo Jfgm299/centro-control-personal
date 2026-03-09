@@ -25,16 +25,18 @@ class AutomationService:
 
     def create(self, db: Session, data: AutomationCreate, user_id: int) -> Automation:
         self._validate_name_unique(db, user_id, data.name)
-        self._validate_flow(data.flow.model_dump(by_alias=True))
+        flow_dict = data.flow.model_dump(by_alias=True)
+        self._validate_flow(flow_dict)
+        trigger_ref = data.trigger_ref or self._extract_trigger_ref(flow_dict)
 
         automation = Automation(
             user_id      = user_id,
             name         = data.name,
             description  = data.description,
             is_active    = data.is_active,
-            flow         = data.flow.model_dump(by_alias=True),
+            flow         = flow_dict,
             trigger_type = data.trigger_type,
-            trigger_ref  = data.trigger_ref,
+            trigger_ref  = trigger_ref,
         )
         db.add(automation)
         db.commit()
@@ -57,13 +59,13 @@ class AutomationService:
 
     def update_flow(self, automation_id: int, db: Session, data: AutomationFlowUpdate, user_id: int) -> Automation:
         automation = self.get_by_id(automation_id, db, user_id)
-        self._validate_flow(data.flow.model_dump(by_alias=True))
+        flow_dict = data.flow.model_dump(by_alias=True)
+        self._validate_flow(flow_dict)
 
-        automation.flow = data.flow.model_dump(by_alias=True)
+        automation.flow = flow_dict
         if data.trigger_type is not None:
             automation.trigger_type = data.trigger_type
-        if data.trigger_ref is not None:
-            automation.trigger_ref = data.trigger_ref
+        automation.trigger_ref = data.trigger_ref or self._extract_trigger_ref(flow_dict)
 
         db.commit()
         db.refresh(automation)
@@ -81,6 +83,13 @@ class AutomationService:
         ).first()
         if exists:
             raise AutomationNameAlreadyExistsError(name)
+
+    def _extract_trigger_ref(self, flow: dict) -> str | None:
+        """Extrae trigger_ref del nodo trigger del flow si no fue enviado explícitamente."""
+        for node in flow.get("nodes", []):
+            if node.get("type") == "trigger":
+                return node.get("config", {}).get("trigger_id")
+        return None
 
     def _validate_flow(self, flow: dict) -> None:
         from ..exceptions import InvalidFlowError, TriggerNotFoundInRegistryError, ActionNotFoundInRegistryError

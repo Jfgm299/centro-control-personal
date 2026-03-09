@@ -17,8 +17,9 @@ TAG_GROUP = {
 }
 
 
-def _start_scheduler() -> None:
+def start_calendar_scheduler() -> None:
     from apscheduler.schedulers.background import BackgroundScheduler
+    import logging as _logging
     from .services.scheduler_service import (
         job_process_notifications,
         job_check_event_starts,
@@ -32,25 +33,22 @@ def _start_scheduler() -> None:
     scheduler = BackgroundScheduler(timezone="UTC")
 
     # Notificaciones — cada 60 segundos
-    scheduler.add_job(job_process_notifications,  "interval", seconds=60,   id="notifications")
+    scheduler.add_job(job_process_notifications,  "interval", seconds=60,   id="calendar_notifications")
     # Eventos que empiezan — cada 60 segundos
-    scheduler.add_job(job_check_event_starts,     "interval", seconds=60,   id="event_starts")
+    scheduler.add_job(job_check_event_starts,     "interval", seconds=60,   id="calendar_event_starts")
     # Eventos que terminan — cada 60 segundos
-    scheduler.add_job(job_check_event_ends,       "interval", seconds=60,   id="event_ends")
+    scheduler.add_job(job_check_event_ends,       "interval", seconds=60,   id="calendar_event_ends")
     # Recordatorios que vencen hoy — cada 5 minutos
-    scheduler.add_job(job_check_reminders_due,    "interval", minutes=5,    id="reminders_due")
+    scheduler.add_job(job_check_reminders_due,    "interval", minutes=5,    id="calendar_reminders_due")
     # Ventanas de tiempo libre — cada 30 minutos
-    scheduler.add_job(job_check_free_windows,     "interval", minutes=30,   id="free_windows")
+    scheduler.add_job(job_check_free_windows,     "interval", minutes=30,   id="calendar_free_windows")
     # Recordatorios vencidos acumulados — una vez al día a las 9:00 UTC
-    scheduler.add_job(job_check_overdue_reminders,"cron",     hour=9,       id="overdue_reminders")
-    # Añadir este job:
-    scheduler.add_job(job_sync_calendars, "interval", minutes=10, id="sync_calendars")
+    scheduler.add_job(job_check_overdue_reminders,"cron",     hour=9,       id="calendar_overdue_reminders")
+    # Sincronización con Google/Apple Calendar — cada 10 minutos
+    scheduler.add_job(job_sync_calendars,         "interval", minutes=10,   id="calendar_sync")
 
     scheduler.start()
-    import logging
-    logging.getLogger(__name__).info("✅ Calendar scheduler iniciado")
+    _logging.getLogger(__name__).info("✅ Calendar scheduler iniciado")
 
 
-_start_scheduler()
-
-__all__ = ["router", "register_handlers", "TAGS", "TAG_GROUP"]
+__all__ = ["router", "register_handlers", "TAGS", "TAG_GROUP", "start_calendar_scheduler"]

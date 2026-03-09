@@ -31,6 +31,7 @@ FastAPI app (backend/app/main.py)
 8. Añade middleware CORS
 9. Registra handlers de excepción (`register_handlers`) si el módulo los exporta
 10. `include_router` para cada módulo en `/api/v1/<module>`
+11. **`startup_event`** (FastAPI `on_event("startup")`) — arranca `cron_scheduler_service.start_cron_scheduler()` tras la inicialización completa (mappers ya configurados)
 
 ## Module Installation Process
 
