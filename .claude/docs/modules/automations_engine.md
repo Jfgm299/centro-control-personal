@@ -54,7 +54,7 @@ Un flujo (`Automation.flow`) es un JSON con `nodes` y `edges`:
 
 | Tipo | Handler | Qué hace |
 |------|---------|----------|
-| `trigger` | `trigger_handler.py` | Primer nodo — evalúa si el trigger se cumple |
+| `trigger` | `trigger_handler.py` | Primer nodo — resuelve el handler via registry (import dinámico) y lanza `StopExecution` si `matched=False`; backwards compat para triggers sin `trigger_id` |
 | `condition` | `condition_handler.py` | Evalúa condición sobre el contexto; devuelve `condition_result: bool` |
 | `action` | `action_handler.py` | Ejecuta una acción de módulo |
 | `outbound_webhook` | `outbound_webhook_handler.py` | Hace HTTP POST a URL externa |
@@ -94,6 +94,17 @@ También soporta `execute_stream()` — versión generator que hace `yield` de e
 - `{"type": "node", "node_id": "n1", "status": "success", "duration_ms": 42, "output": {...}}`
 - `{"type": "done", "status": "success", "duration_ms": 123, "node_logs": [...]}`
 
+## CRON Scheduler (`services/cron_scheduler_service.py`)
+
+Arranca en el evento `startup` de FastAPI via `start_cron_scheduler()`. Revisa cada 60s las automations activas con `trigger_type=CRON` y las ejecuta según el `trigger_id` del nodo trigger:
+
+| trigger_id | Comportamiento |
+|------------|---------------|
+| `system.schedule_once` | Ejecuta una vez cuando `run_at <= now`; desactiva la automation tras ejecutarse |
+| `system.schedule_interval` | Ejecuta cada N minutos/horas/días; soporta ventana horaria `active_from`/`active_until` |
+
+El scheduler escribe `last_run_at` y `run_count` en el modelo `Automation` tras cada ejecución.
+
 ## Services
 
 | Service | Responsabilidad |
@@ -103,6 +114,7 @@ También soporta `execute_stream()` — versión generator que hace `yield` de e
 | `flow_executor.py` | Ejecutar flujos (sync y streaming) |
 | `api_key_service.py` | Gestión de API keys |
 | `webhook_service.py` | Gestión de inbound webhooks |
+| `cron_scheduler_service.py` | Scheduler de triggers CRON del sistema (APScheduler, cada 60s) |
 
 ## Automation Registry (`core/registry.py`)
 

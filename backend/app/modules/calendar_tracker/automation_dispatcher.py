@@ -51,6 +51,10 @@ class CalendarAutomationDispatcher:
                             execution, result.get("error", ""), result["node_logs"], db
                         )
 
+                    automation.last_run_at = datetime.now(timezone.utc)
+                    automation.run_count   = (automation.run_count or 0) + 1
+                    db.commit()
+
                     logger.info(
                         f"Automatización '{automation.name}' terminó con status={result['status']}"
                     )

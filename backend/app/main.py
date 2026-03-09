@@ -82,7 +82,9 @@ async def startup_event():
     inicializada (modelos, relaciones y mappers ya configurados).
     """
     from app.modules.automations_engine.services.cron_scheduler_service import start_cron_scheduler
+    from app.modules.calendar_tracker import start_calendar_scheduler
     start_cron_scheduler()
+    start_calendar_scheduler()
 
 
 # ── Endpoints base ────────────────────────────────────────────────────────────

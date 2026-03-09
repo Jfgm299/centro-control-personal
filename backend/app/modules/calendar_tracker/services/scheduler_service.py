@@ -20,6 +20,30 @@ from .notification_service import NotificationService
 logger = logging.getLogger(__name__)
 notification_service = NotificationService()
 
+# ── Deduplicación en memoria ──────────────────────────────────────────────────
+# Evita disparar el mismo trigger dos veces para el mismo objeto en poco tiempo.
+# Estructura: {(object_id, trigger_ref): datetime_of_last_dispatch}
+_dispatch_cache: dict[tuple, datetime] = {}
+_DEDUP_TTL = timedelta(minutes=5)
+
+
+def _already_dispatched(object_id: int, trigger_ref: str) -> bool:
+    key = (object_id, trigger_ref)
+    last = _dispatch_cache.get(key)
+    if last and (datetime.now(timezone.utc) - last) < _DEDUP_TTL:
+        return True
+    return False
+
+
+def _mark_dispatched(object_id: int, trigger_ref: str) -> None:
+    key = (object_id, trigger_ref)
+    _dispatch_cache[key] = datetime.now(timezone.utc)
+    # Limpiar entradas expiradas para no crecer indefinidamente
+    now = datetime.now(timezone.utc)
+    expired = [k for k, v in _dispatch_cache.items() if (now - v) >= _DEDUP_TTL]
+    for k in expired:
+        del _dispatch_cache[k]
+
 
 def _get_db() -> Session:
     return SessionLocal()
@@ -60,14 +84,16 @@ def job_process_notifications() -> None:
 
 def job_check_event_starts() -> None:
     """
-    Detecta eventos que empiezan en la próxima ventana (últimos 60s + próximos 10s)
+    Detecta eventos que empiezan en la ventana [now-60s, now+60s]
     y dispara automatizaciones suscritas a calendar_tracker.event_start.
+    La ventana ampliada (+60s hacia adelante) garantiza que ningún evento
+    quede fuera por timing del scheduler. La deduplicación evita dobles disparos.
     """
     db = _get_db()
     try:
-        now      = datetime.now(timezone.utc)
+        now          = datetime.now(timezone.utc)
         window_start = now - timedelta(seconds=60)
-        window_end   = now + timedelta(seconds=10)
+        window_end   = now + timedelta(seconds=60)
 
         events = db.query(Event).filter(
             Event.is_cancelled == False,
@@ -76,7 +102,10 @@ def job_check_event_starts() -> None:
         ).all()
 
         for event in events:
+            if _already_dispatched(event.id, "event_start"):
+                continue
             logger.info(f"Evento iniciando: '{event.title}' (id={event.id}, user={event.user_id})")
+            _mark_dispatched(event.id, "event_start")
             _try_dispatch("on_event_start", event_id=event.id, user_id=event.user_id, db=db)
 
     except Exception as e:
@@ -87,14 +116,14 @@ def job_check_event_starts() -> None:
 
 def job_check_event_ends() -> None:
     """
-    Detecta eventos que terminan en la ventana actual y dispara
-    automatizaciones suscritas a calendar_tracker.event_end.
+    Detecta eventos que terminan en la ventana [now-60s, now+60s]
+    y dispara automatizaciones suscritas a calendar_tracker.event_end.
     """
     db = _get_db()
     try:
         now          = datetime.now(timezone.utc)
         window_start = now - timedelta(seconds=60)
-        window_end   = now + timedelta(seconds=10)
+        window_end   = now + timedelta(seconds=60)
 
         events = db.query(Event).filter(
             Event.is_cancelled == False,
@@ -103,7 +132,10 @@ def job_check_event_ends() -> None:
         ).all()
 
         for event in events:
+            if _already_dispatched(event.id, "event_end"):
+                continue
             logger.info(f"Evento terminando: '{event.title}' (id={event.id}, user={event.user_id})")
+            _mark_dispatched(event.id, "event_end")
             _try_dispatch("on_event_end", event_id=event.id, user_id=event.user_id, db=db)
 
     except Exception as e:
@@ -116,6 +148,7 @@ def job_check_reminders_due() -> None:
     """
     Detecta recordatorios que vencen hoy y aún están pendientes,
     y dispara automatizaciones suscritas a calendar_tracker.reminder_due.
+    La deduplicación evita disparar el mismo recordatorio múltiples veces al día.
     """
     db = _get_db()
     try:
@@ -127,7 +160,10 @@ def job_check_reminders_due() -> None:
         ).all()
 
         for reminder in reminders:
+            if _already_dispatched(reminder.id, "reminder_due"):
+                continue
             logger.info(f"Recordatorio vencido: '{reminder.title}' (id={reminder.id}, user={reminder.user_id})")
+            _mark_dispatched(reminder.id, "reminder_due")
             _try_dispatch("on_reminder_due", reminder_id=reminder.id, user_id=reminder.user_id, db=db)
 
     except Exception as e:
