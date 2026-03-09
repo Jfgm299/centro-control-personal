@@ -33,6 +33,8 @@ user.sync_logs            # List[SyncLog]
 
 ## External Dependencies
 
+> **Nota Railway:** `manifest.get_settings()` usa `os.environ` como fuente primaria. Ver patrón en `patterns.md`.
+
 | Variable | Descripción |
 |----------|-------------|
 | `FIREBASE_CREDENTIALS_JSON` | JSON de credenciales Firebase Admin SDK |

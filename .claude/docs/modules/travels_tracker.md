@@ -41,6 +41,10 @@ El modelo `Photo` guarda:
 
 ## External Dependencies (env vars vía `get_settings()`)
 
+> **Nota Railway:** `manifest.get_settings()` usa `os.environ` como fuente primaria. Ver patrón en `patterns.md`.
+
+
+
 | Variable | Descripción |
 |----------|-------------|
 | `R2_ACCOUNT_ID` | ID de cuenta Cloudflare |
