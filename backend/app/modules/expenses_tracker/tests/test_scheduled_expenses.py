@@ -391,19 +391,32 @@ class TestAutoConvert:
         converted = [e for e in expenses if e["name"] == "Pago hoy"]
         assert len(converted) == 1
 
-    def test_subscription_past_date_not_converted(self, auth_client):
-        """Una SUBSCRIPTION con fecha pasada NO debe convertirse en Expense."""
+    def test_subscription_past_date_is_converted_and_advanced(self, auth_client):
+        """Una SUBSCRIPTION con fecha pasada debe convertirse en Expense y avanzar su fecha."""
+        from dateutil.relativedelta import relativedelta
         yesterday = str(date.today() - timedelta(days=1))
-        auth_client.post(BASE, json=subscription_payload(
-            name="Netflix viejo",
+        
+        r = auth_client.post(BASE, json=subscription_payload(
+            name="Netflix recurrente",
             next_payment_date=yesterday,
+            frequency="MONTHLY"
         ))
+        sub_id = r.json()["id"]
 
+        # Trigger conversion
         auth_client.get(BASE)
 
+        # Check expense was created
         expenses = auth_client.get("/api/v1/expenses/").json()
-        converted = [e for e in expenses if e["name"] == "Netflix viejo"]
-        assert len(converted) == 0
+        converted = [e for e in expenses if e["name"] == "Netflix recurrente"]
+        assert len(converted) == 1
+        
+        # Check subscription date was advanced
+        subs = auth_client.get(BASE).json()
+        updated_sub = [s for s in subs if s["id"] == sub_id][0]
+        expected_next = date.today() - timedelta(days=1) + relativedelta(months=1)
+        assert updated_sub["next_payment_date"] == str(expected_next)
+        assert updated_sub["is_active"] is True
 
     def test_inactive_one_time_not_converted(self, auth_client):
         """Un ONE_TIME inactivo con fecha pasada NO debe convertirse."""
