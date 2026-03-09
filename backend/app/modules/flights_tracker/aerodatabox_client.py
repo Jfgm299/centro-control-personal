@@ -38,7 +38,7 @@ class AeroDataBoxClient:
         s = get_settings()
         api_key = s["AERODATABOX_API_KEY"]
         key_preview = f"{api_key[:4]}...{api_key[-4:]}" if len(api_key) >= 8 else f"(len={len(api_key)})"
-        logger.info("AeroDataBoxClient init — key preview: %s, host: %s", key_preview, s["AERODATABOX_HOST"])
+        logger.warning("AeroDataBoxClient init — key preview: %s, len: %d, host: %s", key_preview, len(api_key), s["AERODATABOX_HOST"])
         self.BASE_URL = s["AERODATABOX_BASE_URL"]
         self.HEADERS = {
             "X-RapidAPI-Key":  api_key,
