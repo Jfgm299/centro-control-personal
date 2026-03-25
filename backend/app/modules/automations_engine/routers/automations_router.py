@@ -79,7 +79,11 @@ def trigger_automation(
     execution  = execution_service.create(automation_id, user.id, data.payload, db)
     execution  = execution_service.mark_running(execution, db)
 
-    result = flow_executor.execute(automation, data.payload, db, user.id)
+    try:
+        result = flow_executor.execute(automation, data.payload, db, user.id)
+    except Exception as e:
+        execution = execution_service.mark_failed(execution, str(e), [], db)
+        return execution
 
     if result["status"] == "success":
         execution = execution_service.mark_success(execution, result["node_logs"], db)

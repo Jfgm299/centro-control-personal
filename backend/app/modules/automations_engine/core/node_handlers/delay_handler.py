@@ -11,6 +11,12 @@ UNIT_TO_SECONDS = {
 MAX_SECONDS = 300  # máximo 5 minutos en modo síncrono
 
 
+def handle(payload: dict, config: dict, db, user_id: int) -> dict:
+    """Adapter para ser llamado desde action_handler vía registry."""
+    ctx = {"payload": payload, "vars": {}, "_depth": 0, "user_id": user_id}
+    return execute(config, ctx, db, user_id)
+
+
 def execute(node_config: dict, ctx: dict, db, user_id: int) -> dict[str, Any]:
     """
     Espera N segundos/minutos/horas/días antes de continuar el flujo.

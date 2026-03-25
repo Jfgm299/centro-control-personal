@@ -26,12 +26,15 @@ def _resolve_field(data: dict, path: str) -> Any:
 
 
 def _evaluate(field_val: Any, operator: str, value: Any) -> bool:
-    match operator:
-        case ConditionOperator.EQ:         return field_val == value
-        case ConditionOperator.NEQ:        return field_val != value
-        case ConditionOperator.GT:         return field_val is not None and field_val > value
-        case ConditionOperator.LT:         return field_val is not None and field_val < value
-        case ConditionOperator.CONTAINS:   return value in field_val if field_val is not None else False
-        case ConditionOperator.EXISTS:     return field_val is not None
-        case ConditionOperator.NOT_EXISTS: return field_val is None
-        case _:                            return False
+    try:
+        match operator:
+            case ConditionOperator.EQ:         return field_val == value
+            case ConditionOperator.NEQ:        return field_val != value
+            case ConditionOperator.GT:         return field_val is not None and field_val > value
+            case ConditionOperator.LT:         return field_val is not None and field_val < value
+            case ConditionOperator.CONTAINS:   return value in field_val if field_val is not None else False
+            case ConditionOperator.EXISTS:     return field_val is not None
+            case ConditionOperator.NOT_EXISTS: return field_val is None
+            case _:                            return False
+    except TypeError:
+        return False

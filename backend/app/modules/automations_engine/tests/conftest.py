@@ -9,14 +9,14 @@ def register_mock_triggers():
         trigger_id="test_trigger",
         label="Test trigger",
         config_schema={},
-        handler="app.modules.automations_engine.core.node_handlers.trigger_handler.execute",
+        handler="app.modules.automations_engine.core.node_handlers.trigger_handler.handle",
     )
     registry.register_trigger(
         module_id="webhook",
         trigger_id="inbound",
         label="Webhook entrante",
         config_schema={},
-        handler="app.modules.automations_engine.core.node_handlers.trigger_handler.execute",
+        handler="app.modules.automations_engine.core.node_handlers.trigger_handler.handle",
     )
     registry.register_action(
         module_id="test_module",

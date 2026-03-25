@@ -710,6 +710,7 @@ class TestCalendarActions:
         assert event.is_cancelled is True
 
         action_log = next(l for l in execution.node_logs if l["node_type"] == "action")
+        assert action_log["output"]["done"] is True
         assert action_log["output"]["cancelled"] is True
         assert action_log["output"]["event_id"] == event_id
 
@@ -734,7 +735,7 @@ class TestCalendarActions:
         )
 
         action_log = next(l for l in execution.node_logs if l["node_type"] == "action")
-        assert action_log["output"]["cancelled"] is False
+        assert action_log["output"]["done"] is False
 
     def test_action_push_summary_overdue_returns_summary(
         self, db, auth_client, overdue_reminder_id, automation_for_overdue
