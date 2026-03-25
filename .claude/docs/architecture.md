@@ -40,6 +40,7 @@ Después del setup de la app, el `startup_event` arranca los schedulers de módu
 start_cron_scheduler()          # automations_engine — ejecuta automations tipo CRON
 start_calendar_scheduler()      # calendar_tracker — detecta eventos próximos, reminders vencidos
 start_expenses_scheduler()      # expenses_tracker — detecta suscripciones próximas, presupuesto superado
+start_flights_scheduler()       # flights_tracker — detecta vuelos próximos a salir
 ```
 
 ## Module Installation Process
