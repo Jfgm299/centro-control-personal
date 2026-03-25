@@ -1,31 +1,39 @@
-Analiza los cambios recientes y actualiza la documentación en `.claude/docs/` para que refleje el estado actual del código.
+---
+allowed-tools: Bash(git diff:*), Bash(git log:*), Read, Edit, Write, Glob
+description: Analyze recent changes and update documentation in `.claude/docs/`
+---
 
-## Proceso
+## Context
 
-1. **Identificar qué cambió:**
-   ```bash
-   git diff main..HEAD --name-only
-   ```
+- Changed files vs develop: !`git diff develop..HEAD --name-only`
+- Recent commits (for context on why things changed): !`git log develop..HEAD --oneline`
 
-2. **Por cada archivo cambiado, determinar qué doc afecta:**
+## Task
 
-   | Si cambió... | Actualizar... |
-   |---|---|
-   | `app/modules/<mod>/models/` | `docs/modules/<mod>.md` — sección Models |
-   | `app/modules/<mod>/routers/` | `docs/modules/<mod>.md` — sección Endpoints |
-   | `app/modules/<mod>/manifest.py` | `docs/modules/<mod>.md` y `docs/module-system.md` si cambia el contrato |
-   | `app/modules/<mod>/automation_registry.py` | `docs/modules/<mod>.md` — sección Automation Contract |
-   | `app/core/module_loader.py` | `docs/architecture.md` y `docs/module-system.md` |
-   | `app/main.py` | `docs/architecture.md` — Startup Sequence |
-   | `alembic/versions/` | `docs/database.md` si introduce nuevos patrones |
-   | Nuevo módulo completo | Crear `docs/modules/<mod>.md` y añadir fila en `docs/modules/README.md` |
+Analyze the changed files above and update the relevant docs in `.claude/docs/` to reflect the current state of the code.
 
-3. **Leer los archivos afectados** para entender exactamente qué cambió.
+## Mapping: changed file -> doc to update
 
-4. **Editar los docs** con la información actualizada. Ser preciso — no reescribir secciones que no cambiaron.
+| If this changed... | Update... |
+|---|---|
+| `app/modules/<mod>/models/` | `docs/modules/<mod>.md` — Models section |
+| `app/modules/<mod>/routers/` | `docs/modules/<mod>.md` — Endpoints section |
+| `app/modules/<mod>/manifest.py` | `docs/modules/<mod>.md` and `docs/module-system.md` if contract changed |
+| `app/modules/<mod>/automation_registry.py` | `docs/modules/<mod>.md` — Automation Contract section |
+| `app/modules/<mod>/services/` | `docs/modules/<mod>.md` — Services section |
+| `app/core/module_loader.py` | `docs/architecture.md` and `docs/module-system.md` |
+| `app/main.py` | `docs/architecture.md` — Startup Sequence |
+| `alembic/versions/` | `docs/database.md` if it introduces new patterns |
+| New complete module | Create `docs/modules/<mod>.md` and add row in `docs/modules/README.md` |
 
-5. **Confirmar** qué archivos se actualizaron y qué se cambió en cada uno.
+## Process
 
-## Cambios que afectan al frontend
+1. Read the changed files to understand exactly what changed (not just file names)
+2. Cross-reference with the mapping above to determine which docs need updates
+3. Edit only the affected sections — do not rewrite sections that didn't change
+4. Confirm which files were updated and what changed in each
 
-Si el cambio afecta a la interfaz backend↔frontend (endpoints nuevos o modificados, cambios en schemas de respuesta, módulos nuevos), actualizar también el `shared-context.md` del repo del frontend (`centro-control-app/.claude/docs/shared-context.md`) para mantenerlo sincronizado.
+## Backend-affecting changes
+
+If the change affects the backend-frontend interface (new/modified endpoints, response schema changes, new modules), also update:
+- `shared-context.md` in the frontend repo (`centro-control-app/.claude/docs/shared-context.md`) if it exists
