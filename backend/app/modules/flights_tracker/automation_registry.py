@@ -64,6 +64,12 @@ def register(registry) -> None:
                 "label":    "ID del vuelo (si no viene del trigger)",
                 "optional": True,
             },
+            "fields": {
+                "type":     "list[str]",
+                "label":    "Campos a incluir (vacío = todos)",
+                "optional": True,
+                "default":  [],
+            },
         },
         handler="app.modules.flights_tracker.automation_handlers.action_get_flight_details",
     )

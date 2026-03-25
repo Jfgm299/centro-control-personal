@@ -155,7 +155,12 @@ def action_get_flight_details(payload: dict, config: dict, db: Session, user_id:
     if not flight:
         return {"done": False, "reason": f"flight {flight_id} not found"}
 
-    return {"done": True, "flight": _flight_to_dict(flight)}
+    flight_dict = _flight_to_dict(flight)
+    fields = config.get("fields") or []
+    if fields:
+        flight_dict = {k: v for k, v in flight_dict.items() if k in fields}
+
+    return {"done": True, "flight": flight_dict}
 
 
 def action_refresh_flight(payload: dict, config: dict, db: Session, user_id: int) -> dict:
