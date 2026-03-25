@@ -48,6 +48,20 @@ class FlightService:
         db.add(flight)
         db.commit()
         db.refresh(flight)
+
+        try:
+            from ..automation_dispatcher import dispatcher
+            dispatcher.on_flight_added(
+                flight_id=flight.id,
+                flight_number=flight.flight_number,
+                flight_date=str(flight.flight_date),
+                status=flight.status.value,
+                user_id=user_id,
+                db=db,
+            )
+        except Exception:
+            pass
+
         return flight
 
     def get_flights(
@@ -92,6 +106,8 @@ class FlightService:
             if elapsed < timedelta(minutes=5):
                 raise FlightRefreshThrottleError()
 
+        old_status = flight.status.value
+
         client = AeroDataBoxClient()
         raw    = await client.get_flight(flight.flight_number, str(flight.flight_date))
         parsed = client.parse_flight_data(raw)
@@ -104,6 +120,23 @@ class FlightService:
 
         db.commit()
         db.refresh(flight)
+
+        new_status = flight.status.value
+        if old_status != new_status:
+            try:
+                from ..automation_dispatcher import dispatcher
+                from ..automation_handlers import _flight_to_dict
+                dispatcher.on_flight_status_changed(
+                    flight_id=flight.id,
+                    old_status=old_status,
+                    new_status=new_status,
+                    flight_dict=_flight_to_dict(flight),
+                    user_id=user_id,
+                    db=db,
+                )
+            except Exception:
+                pass
+
         return flight
 
     async def search_flight(self, flight_number: str, flight_date: str) -> dict:
