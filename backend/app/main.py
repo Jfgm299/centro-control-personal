@@ -83,8 +83,14 @@ async def startup_event():
     """
     from app.modules.automations_engine.services.cron_scheduler_service import start_cron_scheduler
     from app.modules.calendar_tracker import start_calendar_scheduler
+    from app.modules.expenses_tracker import start_expenses_scheduler
     start_cron_scheduler()
     start_calendar_scheduler()
+    try:
+        start_expenses_scheduler()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error iniciando expenses scheduler: {e}")
 
 
 # ── Endpoints base ────────────────────────────────────────────────────────────
