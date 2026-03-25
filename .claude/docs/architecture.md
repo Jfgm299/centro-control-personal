@@ -32,6 +32,16 @@ FastAPI app (backend/app/main.py)
 9. Registra handlers de excepción (`register_handlers`) si el módulo los exporta
 10. `include_router` para cada módulo en `/api/v1/<module>`
 
+## Startup Event (FastAPI `@app.on_event("startup")`)
+
+Después del setup de la app, el `startup_event` arranca los schedulers de módulos. **Deben arrancarse aquí, nunca en import-time** — arrancarlos antes de que SQLAlchemy termine de mapear los modelos causa races.
+
+```python
+start_cron_scheduler()          # automations_engine — ejecuta automations tipo CRON
+start_calendar_scheduler()      # calendar_tracker — detecta eventos próximos, reminders vencidos
+start_expenses_scheduler()      # expenses_tracker — detecta suscripciones próximas, presupuesto superado
+```
+
 ## Module Installation Process
 
 Un módulo se activa solo con existir en `backend/app/modules/` con un `manifest.py` válido (que tenga `SCHEMA_NAME`). No hay lista manual. `get_installed_modules()` itera el directorio y lo descubre automáticamente.
