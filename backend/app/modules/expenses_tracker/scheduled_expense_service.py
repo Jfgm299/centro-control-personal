@@ -26,6 +26,8 @@ class ScheduledExpenseService:
         """
         today = date.today()
         changed = False
+        # Acumular (item, expense) para despachar tras el commit
+        converted_pairs: list = []
 
         for item in items:
             if not item.is_active or not item.next_payment_date:
@@ -42,6 +44,7 @@ class ScheduledExpenseService:
                     db.add(expense)
                     item.is_active = False
                     changed = True
+                    converted_pairs.append((item, expense))
 
                 elif item.category == ScheduledCategory.SUBSCRIPTION:
                     while item.next_payment_date <= today:
@@ -52,6 +55,7 @@ class ScheduledExpenseService:
                             account=item.account,
                         )
                         db.add(expense)
+                        converted_pairs.append((item, expense))
 
                         if item.frequency == ScheduledFrequency.WEEKLY:
                             item.next_payment_date += relativedelta(weeks=1)
@@ -69,6 +73,21 @@ class ScheduledExpenseService:
 
         if changed:
             db.commit()
+            # Dispatch automation triggers after commit (IDs available now)
+            for item, expense in converted_pairs:
+                try:
+                    db.refresh(expense)
+                    from .automation_dispatcher import dispatcher
+                    dispatcher.on_subscription_converted(
+                        scheduled_id=item.id,
+                        expense_id=expense.id,
+                        name=item.name,
+                        amount=item.amount,
+                        user_id=user_id,
+                        db=db,
+                    )
+                except Exception:
+                    pass  # automation failures must never break the main flow
 
     def get_one(self, id: int, db: Session, user_id: int):
         return (

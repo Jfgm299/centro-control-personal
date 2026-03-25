@@ -19,6 +19,20 @@ class ExpenseService:
         db.add(db_expense)
         db.commit()
         db.refresh(db_expense)
+
+        # Dispatch automation trigger (lazy import to avoid circular dependency)
+        try:
+            from .automation_dispatcher import dispatcher
+            dispatcher.on_large_expense_created(
+                expense_id=db_expense.id,
+                amount=db_expense.quantity,
+                account=db_expense.account.value,
+                user_id=user_id,
+                db=db,
+            )
+        except Exception:
+            pass  # automation failures must never break the main flow
+
         return db_expense
 
     def update_expense(self, expense_id: int, data: ExpenseUpdate, db: Session, user_id: int) -> Expense:
