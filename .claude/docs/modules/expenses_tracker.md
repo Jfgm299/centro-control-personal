@@ -25,6 +25,9 @@ user.scheduled_expenses  # List[ScheduledExpense]
 - `ScheduledExpense` tiene frecuencias: `WEEKLY`, `MONTHLY`, `YEARLY`, `CUSTOM`
 - Categorías de gasto programado: `SUBSCRIPTION`, `ONE_TIME`
 - Las categorías de gasto puntual se gestionan con un enum `ExpenseCategory`
+- **Auto-conversión de gastos vencidos:** Al listar gastos programados (`get_all`), el servicio detecta automáticamente los que tienen `next_payment_date <= today` y los convierte en gastos reales (`Expense`):
+  - `ONE_TIME` — crea un `Expense` y desactiva el gasto programado (`is_active = False`)
+  - `SUBSCRIPTION` — crea un `Expense` por cada período vencido y avanza `next_payment_date` según la frecuencia hasta que sea futura
 
 ## Structure
 

@@ -2,6 +2,12 @@ import pytest
 from datetime import datetime, timezone, timedelta
 
 
+@pytest.fixture(autouse=True)
+def clear_scheduler_dispatch_cache():
+    from app.modules.calendar_tracker.services.scheduler_service import _dispatch_cache
+    _dispatch_cache.clear()
+
+
 # ── Fixtures de categorías ────────────────────────────────────────────────────
 
 @pytest.fixture

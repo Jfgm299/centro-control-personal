@@ -37,9 +37,9 @@ Un flujo (`Automation.flow`) es un JSON con `nodes` y `edges`:
 ```json
 {
   "nodes": [
-    {"id": "n1", "type": "trigger", "config": {"trigger_id": "calendar_tracker.event_start", ...}},
+    {"id": "n1", "type": "trigger", "config": {"ref": "calendar_tracker.event_start", ...}},
     {"id": "n2", "type": "condition", "config": {"field": "event.category_id", "op": "eq", "value": 5}},
-    {"id": "n3", "type": "action", "config": {"action_id": "calendar_tracker.create_reminder", ...}}
+    {"id": "n3", "type": "action", "config": {"ref": "calendar_tracker.create_reminder", ...}}
   ],
   "edges": [
     {"from": "n1", "to": "n2"},
@@ -48,21 +48,21 @@ Un flujo (`Automation.flow`) es un JSON con `nodes` y `edges`:
 }
 ```
 
-**`trigger_ref` en el modelo `Automation`:** campo top-level que replica el `trigger_id` del nodo trigger. Lo usa el `automation_dispatcher` de cada módulo para buscar automations suscritas a un trigger concreto. `automation_service` lo auto-deriva del nodo trigger del flow si no se envía explícitamente — el frontend no necesita enviarlo.
-
 **Edge `when`:** `null` = siempre, `"true"` = si condition fue true, `"false"` = si condition fue false.
 
 ## Node Types
 
 | Tipo | Handler | Qué hace |
 |------|---------|----------|
-| `trigger` | `trigger_handler.py` | Primer nodo — resuelve el handler via registry (import dinámico) y lanza `StopExecution` si `matched=False`; backwards compat para triggers sin `trigger_id` |
-| `condition` | `condition_handler.py` | Evalúa condición sobre el contexto; devuelve `condition_result: bool` |
+| `trigger` | `trigger_handler.py` | Primer nodo — evalúa si el trigger se cumple. Propaga `condition_result` para edges condicionales |
+| `condition` | `condition_handler.py` | Evalúa condición sobre el contexto; devuelve `condition_result: bool`. Maneja TypeError en comparaciones de tipos incompatibles |
 | `action` | `action_handler.py` | Ejecuta una acción de módulo |
-| `outbound_webhook` | `outbound_webhook_handler.py` | Hace HTTP POST a URL externa |
+| `outbound_webhook` | `outbound_webhook_handler.py` | Hace HTTP request a URL externa. Soporta template `{{ }}` con dot-notation anidada en `body_template` |
 | `automation_call` | `automation_call_handler.py` | Llama a otro flujo de automatización |
 | `delay` | `delay_handler.py` | Pausa la ejecución N segundos |
 | `stop` | `stop_handler.py` | Detiene el flujo (lanza `StopExecution`) |
+
+**Nota:** Los handlers `delay`, `stop` y `outbound_webhook` exponen una función `handle(payload, config, db, user_id)` como adapter para compatibilidad con el registry (misma firma que action handlers).
 
 ## Condition Operators (`ConditionOperator`)
 
@@ -96,27 +96,30 @@ También soporta `execute_stream()` — versión generator que hace `yield` de e
 - `{"type": "node", "node_id": "n1", "status": "success", "duration_ms": 42, "output": {...}}`
 - `{"type": "done", "status": "success", "duration_ms": 123, "node_logs": [...]}`
 
-## CRON Scheduler (`services/cron_scheduler_service.py`)
-
-Arranca en el evento `startup` de FastAPI via `start_cron_scheduler()`. Revisa cada 60s las automations activas con `trigger_type=CRON` y las ejecuta según el `trigger_id` del nodo trigger:
-
-| trigger_id | Comportamiento |
-|------------|---------------|
-| `system.schedule_once` | Ejecuta una vez cuando `run_at <= now`; desactiva la automation tras ejecutarse |
-| `system.schedule_interval` | Ejecuta cada N minutos/horas/días; soporta ventana horaria `active_from`/`active_until` |
-
-El scheduler escribe `last_run_at` y `run_count` en el modelo `Automation` tras cada ejecución.
-
 ## Services
 
 | Service | Responsabilidad |
 |---------|----------------|
-| `automation_service.py` | CRUD automations |
+| `automation_service.py` | CRUD automations + validación de flujos |
 | `execution_service.py` | Crear y actualizar registros de ejecución |
 | `flow_executor.py` | Ejecutar flujos (sync y streaming) |
 | `api_key_service.py` | Gestión de API keys |
 | `webhook_service.py` | Gestión de inbound webhooks |
-| `cron_scheduler_service.py` | Scheduler de triggers CRON del sistema (APScheduler, cada 60s) |
+
+## Flow Validation (`automation_service._validate_flow()`)
+
+Al crear o actualizar un flujo, se valida:
+1. Exactamente un nodo `trigger` (ni cero ni más de uno)
+2. Todos los edges referencian nodos existentes (`from` y `to` deben estar en `node_ids`)
+3. Los `action_id` y `trigger_id` referenciados existen en el registry global
+
+## Cron Scheduler (`cron_scheduler_service.py`)
+
+Ejecuta automations con `trigger_type=CRON` cada 60 segundos. Soporta dos tipos de schedule:
+- `system.schedule_once` — ejecuta una vez cuando `run_at <= now`, luego desactiva la automation
+- `system.schedule_interval` — ejecuta periódicamente según `interval_value` + `interval_unit` (minutes/hours/days), con ventana opcional `active_from`/`active_until`
+
+**Resiliencia:** Si una ejecución falla, `last_run_at` se actualiza igualmente para evitar retry infinito en el siguiente ciclo.
 
 ## Automation Registry (`core/registry.py`)
 

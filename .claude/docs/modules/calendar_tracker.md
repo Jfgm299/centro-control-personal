@@ -62,7 +62,7 @@ integrations/
 | `category_service.py` | CRUD categorías |
 | `notification_service.py` | Envío de push notifications via Firebase |
 | `sync_service.py` | Orquesta sync con Google/Apple |
-| `scheduler_service.py` | Scheduler de tareas periódicas (APScheduler, arranca desde `startup_event`) |
+| `scheduler_service.py` | Scheduler de tareas periódicas (APScheduler) |
 | `automation_handlers.py` | Handlers del automation contract |
 
 ## Automation Contract Implementation
@@ -89,25 +89,15 @@ integrations/
 | `calendar_tracker.get_todays_schedule` | Devuelve eventos del día en el contexto |
 | `calendar_tracker.bulk_mark_overdue_done` | Marca en bloque recordatorios vencidos |
 
-### Scheduler (`scheduler_service.py`)
+### Return Value Convention
 
-Arranca desde `startup_event` en `main.py` via `start_calendar_scheduler()` (exportado desde `calendar_tracker/__init__.py`). **No se arranca en import-time.**
-
-| Job | Frecuencia | Qué hace |
-|-----|-----------|----------|
-| `job_check_event_starts` | cada 60s | Detecta eventos en `[now-60s, now+60s]` → dispara `event_start` |
-| `job_check_event_ends` | cada 60s | Detecta eventos en `[now-60s, now+60s]` → dispara `event_end` |
-| `job_check_reminders_due` | cada 5min | Recordatorios con `due_date == today` → dispara `reminder_due` |
-| `job_check_free_windows` | cada 30min | Sin eventos en ventana de 2h → dispara `no_events_in_window` |
-| `job_check_overdue_reminders` | diario 9:00 UTC | Recordatorios vencidos → dispara `overdue_reminders_exist` |
-| `job_sync_calendars` | cada 10min | Sync con Google/Apple Calendar |
-| `job_process_notifications` | cada 60s | Envía notificaciones FCM pendientes |
-
-Los jobs de tiempo puntual (`event_start`, `event_end`, `reminder_due`) tienen **deduplicación en memoria** (`_dispatch_cache`, TTL 5min) para evitar dobles disparos en runs consecutivos del scheduler.
+Todos los action handlers siguen estrictamente el contrato `done: True/False`:
+- Acciones de creación devuelven `{"created": True, ...}` (variante aceptada del contrato)
+- Acciones de modificación/consulta devuelven `{"done": True, ...}` o `{"done": False, "reason": "..."}` en caso de fallo (ej: entidad no encontrada, ID faltante)
 
 ### Dispatcher
 
-`automation_dispatcher.py` contiene `CalendarAutomationDispatcher` — conecta los eventos del scheduler con el motor de automatizaciones. Busca automations activas por `trigger_ref` y las ejecuta via `flow_executor`. Tras cada ejecución actualiza `last_run_at` y `run_count` en el modelo `Automation`.
+`automation_dispatcher.py` contiene `CalendarAutomationDispatcher` — conecta los eventos del scheduler con el motor de automatizaciones. Es llamado por `scheduler_service.py` cuando ocurren eventos relevantes.
 
 Ver implementación completa:
 - `backend/app/modules/calendar_tracker/automation_registry.py`

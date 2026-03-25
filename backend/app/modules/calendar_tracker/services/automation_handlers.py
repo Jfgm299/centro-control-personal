@@ -339,7 +339,7 @@ def action_cancel_event(payload: dict, config: dict, db: Session, user_id: int) 
     """
     event_id = config.get("event_id") or payload.get("event_id")
     if not event_id:
-        return {"cancelled": False, "reason": "no event_id provided"}
+        return {"done": False, "reason": "no event_id provided"}
 
     event = db.query(Event).filter(
         Event.id         == event_id,
@@ -348,12 +348,12 @@ def action_cancel_event(payload: dict, config: dict, db: Session, user_id: int) 
     ).first()
 
     if not event:
-        return {"cancelled": False, "reason": f"event {event_id} not found or already cancelled"}
+        return {"done": False, "reason": f"event {event_id} not found or already cancelled"}
 
     event.is_cancelled = True
     db.commit()
 
-    return {"cancelled": True, "event_id": event_id, "title": event.title}
+    return {"done": True, "cancelled": True, "event_id": event_id, "title": event.title}
 
 
 def action_push_summary_overdue(payload: dict, config: dict, db: Session, user_id: int) -> dict:
@@ -388,6 +388,7 @@ def action_push_summary_overdue(payload: dict, config: dict, db: Session, user_i
     summary_text = "\n".join(summary_lines) if summary_lines else "No hay recordatorios vencidos."
 
     return {
+        "done":          True,
         "summary":       summary_text,
         "count":         len(filtered),
         "reminders":     [_reminder_to_dict(r) for r in filtered],
@@ -429,6 +430,7 @@ def action_get_todays_schedule(payload: dict, config: dict, db: Session, user_id
     ]
 
     return {
+        "done":         True,
         "events":       [_event_to_dict(e) for e in events],
         "count":        len(events),
         "summary_text": "\n".join(summary_lines) if summary_lines else "Sin eventos hoy.",
@@ -465,6 +467,7 @@ def action_bulk_mark_overdue_done(payload: dict, config: dict, db: Session, user
     db.commit()
 
     return {
+        "done":        True,
         "marked_done": len(to_mark),
         "titles":      [r.title for r in to_mark],
     }

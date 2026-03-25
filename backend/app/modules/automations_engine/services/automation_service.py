@@ -94,12 +94,21 @@ class AutomationService:
     def _validate_flow(self, flow: dict) -> None:
         from ..exceptions import InvalidFlowError, TriggerNotFoundInRegistryError, ActionNotFoundInRegistryError
         nodes = flow.get("nodes", [])
+        edges = flow.get("edges", [])
 
         trigger_nodes = [n for n in nodes if n["type"] == "trigger"]
         if not trigger_nodes:
             raise InvalidFlowError("el flujo debe tener al menos un nodo trigger")
         if len(trigger_nodes) > 1:
             raise InvalidFlowError("el flujo solo puede tener un nodo trigger")
+
+        node_ids = {n["id"] for n in nodes}
+
+        for edge in edges:
+            if edge.get("from") not in node_ids:
+                raise InvalidFlowError(f"edge referencia nodo origen inexistente: {edge.get('from')}")
+            if edge.get("to") not in node_ids:
+                raise InvalidFlowError(f"edge referencia nodo destino inexistente: {edge.get('to')}")
 
         for node in nodes:
             if node["type"] == "action":

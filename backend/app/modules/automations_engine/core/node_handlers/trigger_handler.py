@@ -31,6 +31,7 @@ def execute(node_config: dict, ctx: dict, db, user_id: int) -> dict[str, Any]:
     if not result.get("matched"):
         raise StopExecution(result.get("reason", "trigger did not match"))
 
+    result.setdefault("condition_result", True)
     return result
 
 

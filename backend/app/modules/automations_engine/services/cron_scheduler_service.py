@@ -150,6 +150,13 @@ def job_check_cron_automations() -> None:
             except Exception as e:
                 logger.error(f"Error al procesar automation CRON id={automation.id}: {e}")
                 db.rollback()
+                # Actualizar last_run_at incluso en fallo para evitar retry infinito
+                try:
+                    automation.last_run_at = datetime.now(timezone.utc)
+                    automation.run_count   = (automation.run_count or 0) + 1
+                    db.commit()
+                except Exception:
+                    db.rollback()
 
     except Exception as e:
         logger.error(f"job_check_cron_automations error: {e}")
