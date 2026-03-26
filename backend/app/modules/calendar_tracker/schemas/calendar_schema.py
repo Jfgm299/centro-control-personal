@@ -52,11 +52,12 @@ class ReminderCreate(BaseModel):
 
 
 class ReminderUpdate(BaseModel):
-    title:       Optional[str]           = Field(None, min_length=1, max_length=200)
-    description: Optional[str]           = None
-    category_id: Optional[int]           = None
+    title:       Optional[str]              = Field(None, min_length=1, max_length=200)
+    description: Optional[str]             = None
+    category_id: Optional[int]             = None
     priority:    Optional[ReminderPriority] = None
-    due_date:    Optional[date]          = None
+    due_date:    Optional[date]            = None
+    status:      Optional[ReminderStatus]  = None
 
 
 class ReminderSchedule(BaseModel):
