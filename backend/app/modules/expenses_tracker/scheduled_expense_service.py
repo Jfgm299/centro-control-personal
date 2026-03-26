@@ -11,7 +11,10 @@ class ScheduledExpenseService:
     def get_all(self, db: Session, user_id: int):
         items = (
             db.query(ScheduledExpense)
-            .filter(ScheduledExpense.user_id == user_id)
+            .filter(
+                ScheduledExpense.user_id == user_id,
+                ScheduledExpense.is_active == True,
+            )
             .order_by(ScheduledExpense.next_payment_date.asc().nullslast(),
                       ScheduledExpense.name.asc())
             .all()
