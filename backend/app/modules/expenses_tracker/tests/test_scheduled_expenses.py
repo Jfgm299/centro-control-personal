@@ -331,7 +331,7 @@ class TestAutoConvert:
         assert converted[0]["quantity"] == 89.0
 
     def test_past_one_time_becomes_inactive(self, auth_client):
-        """El ONE_TIME convertido debe quedar is_active=False."""
+        """El ONE_TIME convertido debe desaparecer de la lista (is_active=False → filtrado)."""
         yesterday = str(date.today() - timedelta(days=1))
         r = auth_client.post(BASE, json=one_time_payload(
             name="Hotel Paris",
@@ -342,9 +342,8 @@ class TestAutoConvert:
         auth_client.get(BASE)  # trigger auto-convert
 
         scheduled = auth_client.get(BASE).json()
-        item = next((s for s in scheduled if s["id"] == item_id), None)
-        assert item is not None
-        assert item["is_active"] is False
+        ids = [s["id"] for s in scheduled]
+        assert item_id not in ids
 
     def test_past_one_time_not_converted_twice(self, auth_client):
         """Llamar GET dos veces no debe crear dos Expenses."""

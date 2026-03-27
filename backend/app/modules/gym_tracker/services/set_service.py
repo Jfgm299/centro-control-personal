@@ -1,5 +1,7 @@
+import logging
 from typing import List
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from ..models.set import Set
 from ..models.exercise import Exercise
 from ..models.workout import Workout
@@ -10,6 +12,8 @@ from ..exceptions import (
     ExerciseNotInWorkoutError, SetNotFoundError, SetTypeMismatchError
 )
 from app.core.exeptions import NotYoursError
+
+logger = logging.getLogger(__name__)
 
 class SetService:
 
@@ -42,6 +46,21 @@ class SetService:
             .first()
         )
         next_set_number = (last_set.set_number + 1) if last_set else 1
+
+        # ── PR detection: capturar ANTES de insertar el nuevo set ─────────────
+        previous_max = None
+        if exercise_db.exercise_type == GymSetType.WEIGHT_REPS and data.weight_kg:
+            previous_max = (
+                db.query(func.max(Set.weight_kg))
+                .join(Exercise, Set.exercise_id == Exercise.id)
+                .join(Workout, Exercise.workout_id == Workout.id)
+                .filter(
+                    func.lower(Exercise.name) == exercise_db.name.lower(),
+                    Workout.user_id == user_id,
+                )
+                .scalar()
+            )
+
         new_set = Set(
             exercise_id=exercise_id,
             set_number=next_set_number,
@@ -56,6 +75,28 @@ class SetService:
         db.add(new_set)
         db.commit()
         db.refresh(new_set)
+
+        # ── Disparar PR trigger si corresponde ────────────────────────────────
+        if (
+            exercise_db.exercise_type == GymSetType.WEIGHT_REPS
+            and new_set.weight_kg
+            and new_set.weight_kg > (previous_max or 0)
+        ):
+            try:
+                from ..automation_dispatcher import dispatcher
+                dispatcher.on_personal_record_weight(
+                    exercise_name=exercise_db.name,
+                    new_weight_kg=new_set.weight_kg,
+                    previous_record_kg=previous_max,
+                    reps=new_set.reps,
+                    workout_id=exercise_db.workout_id,
+                    set_id=new_set.id,
+                    user_id=user_id,
+                    db=db,
+                )
+            except Exception as e:
+                logger.warning(f"gym dispatcher.on_personal_record_weight failed: {e}")
+
         return SetResponse.model_validate(new_set)
 
     def get_sets_by_exercise(self, db: Session, workout_id: int, exercise_id: int, user_id: int) -> List[SetResponse]:
