@@ -97,6 +97,12 @@ async def startup_event():
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Error iniciando flights scheduler: {e}")
+    try:
+        from app.modules.gym_tracker.scheduler_service import start_gym_scheduler
+        start_gym_scheduler()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error iniciando gym scheduler: {e}")
 
 
 # ── Endpoints base ────────────────────────────────────────────────────────────
