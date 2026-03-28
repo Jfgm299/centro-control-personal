@@ -35,7 +35,7 @@ def _get_or_create_goal(db: Session, user_id: int) -> UserGoal:
 
 class DiaryService:
 
-    def add_entry(self, db: Session, user_id: int, data: DiaryEntryCreate) -> DiaryEntry:
+    def add_entry(self, db: Session, user_id: int, data: DiaryEntryCreate, skip_dispatch: bool = False) -> DiaryEntry:
         # Verificar que el producto existe
         product = db.query(Product).filter(Product.id == data.product_id).first()
         if not product:
@@ -69,6 +69,20 @@ class DiaryService:
             .filter(DiaryEntry.id == entry.id)
             .first()
         )
+
+        # ── Automation hooks ──────────────────────────────────────────────────
+        if not skip_dispatch:
+            try:
+                from ..automation_dispatcher import dispatcher
+                dispatcher.on_meal_logged(entry.id, user_id, db)
+                dispatcher.on_entry_added_check_threshold(entry.id, user_id, db)
+            except ImportError:
+                pass
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"automation dispatch failed: {e}")
+        # ── End automation hooks ──────────────────────────────────────────────
+
         return entry
 
     def get_entry(self, db: Session, user_id: int, entry_id: int) -> DiaryEntry:
@@ -223,10 +237,30 @@ class DiaryService:
         return _get_or_create_goal(db, user_id)
 
     def upsert_goals(self, db: Session, user_id: int, data) -> UserGoal:
+        # Snapshot ANTES del upsert (para calcular changed_fields en el trigger goal_updated)
+        _macro_fields = ["energy_kcal", "proteins_g", "carbohydrates_g", "fat_g", "fiber_g"]
+        existing = db.query(UserGoal).filter(UserGoal.user_id == user_id).first()
+        old_snapshot = (
+            {f: getattr(existing, f) for f in _macro_fields}
+            if existing else None
+        )
+
         goal = _get_or_create_goal(db, user_id)
         update_data = data.model_dump(exclude_none=True)
         for key, value in update_data.items():
             setattr(goal, key, value)
         db.commit()
         db.refresh(goal)
+
+        # ── Automation hook ───────────────────────────────────────────────────
+        try:
+            from ..automation_dispatcher import dispatcher
+            dispatcher.on_goal_updated(user_id, old_snapshot, goal, db)
+        except ImportError:
+            pass
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"goal_updated dispatch failed: {e}")
+        # ── End automation hook ───────────────────────────────────────────────
+
         return goal

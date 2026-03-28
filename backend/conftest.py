@@ -58,6 +58,9 @@ def db(setup_database):
             conn.execute(text(
                 "TRUNCATE TABLE core.users RESTART IDENTITY CASCADE"
             ))
+            conn.execute(text(
+                "TRUNCATE TABLE macro_tracker.products RESTART IDENTITY CASCADE"
+            ))
 
 
 def make_db_override(db):

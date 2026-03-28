@@ -3,8 +3,6 @@ from ..product import Product
 from ..openfoodfacts_client import OpenFoodFactsClient
 from ..macro_schema import ProductCreate, ProductUpdate
 
-client = OpenFoodFactsClient()
-
 NUTRIENT_FIELDS = [
     "energy_kcal_100g", "proteins_100g", "carbohydrates_100g",
     "sugars_100g", "fat_100g", "saturated_fat_100g",
@@ -13,6 +11,9 @@ NUTRIENT_FIELDS = [
 
 
 class FoodService:
+
+    def __init__(self):
+        self.client = OpenFoodFactsClient()
 
     async def get_or_fetch_by_barcode(self, db: Session, barcode: str) -> Product:
         barcode = barcode.strip()
@@ -23,8 +24,8 @@ class FoodService:
             return product
 
         # 2. No está en BD → llamar a OFF y persistir
-        raw    = await client.get_product(barcode)
-        parsed = client.parse_product(raw)
+        raw    = await self.client.get_product(barcode)
+        parsed = self.client.parse_product(raw)
 
         product = Product(**parsed)
         db.add(product)
@@ -48,14 +49,14 @@ class FoodService:
 
         # 2. Completar con resultados de OFF — PERSISTIR para que tengan id
         try:
-            remote_results = await client.search_by_name(query_stripped, page_size=10)
+            remote_results = await self.client.search_by_name(query_stripped, page_size=10)
         except Exception:
             return local_results
 
         local_barcodes = {p.barcode for p in local_results if p.barcode}
 
         for raw in remote_results:
-            parsed = client.parse_product(raw)
+            parsed = self.client.parse_product(raw)
             barcode = parsed.get("barcode")
 
             # Evitar duplicados con local

@@ -7,6 +7,7 @@ from app.modules.macro_tracker.exceptions import (
     OFFTimeoutError,
     OFFRateLimitError,
 )
+from app.modules.macro_tracker.macro_router import food_service as _food_service
 
 MOCK_PRODUCT_RAW = {
     "code": "8480000342591",
@@ -41,42 +42,32 @@ MOCK_PRODUCT_PARTIAL_RAW = {
 
 @pytest.fixture
 def mock_off_client():
-    with patch(
-        "app.modules.macro_tracker.openfoodfacts_client.OpenFoodFactsClient.get_product",
-        new_callable=AsyncMock, return_value=MOCK_PRODUCT_RAW,
-    ):
+    with patch.object(_food_service.client, "get_product",
+                      new=AsyncMock(return_value=MOCK_PRODUCT_RAW)):
         yield
 
 @pytest.fixture
 def mock_off_not_found():
-    with patch(
-        "app.modules.macro_tracker.openfoodfacts_client.OpenFoodFactsClient.get_product",
-        new_callable=AsyncMock, side_effect=ProductNotFoundInAPIError("0000000000000"),
-    ):
+    with patch.object(_food_service.client, "get_product",
+                      new=AsyncMock(side_effect=ProductNotFoundInAPIError("0000000000000"))):
         yield
 
 @pytest.fixture
 def mock_off_timeout():
-    with patch(
-        "app.modules.macro_tracker.openfoodfacts_client.OpenFoodFactsClient.get_product",
-        new_callable=AsyncMock, side_effect=OFFTimeoutError(),
-    ):
+    with patch.object(_food_service.client, "get_product",
+                      new=AsyncMock(side_effect=OFFTimeoutError())):
         yield
 
 @pytest.fixture
 def mock_off_rate_limit():
-    with patch(
-        "app.modules.macro_tracker.openfoodfacts_client.OpenFoodFactsClient.get_product",
-        new_callable=AsyncMock, side_effect=OFFRateLimitError(),
-    ):
+    with patch.object(_food_service.client, "get_product",
+                      new=AsyncMock(side_effect=OFFRateLimitError())):
         yield
 
 @pytest.fixture
 def mock_off_partial():
-    with patch(
-        "app.modules.macro_tracker.openfoodfacts_client.OpenFoodFactsClient.get_product",
-        new_callable=AsyncMock, return_value=MOCK_PRODUCT_PARTIAL_RAW,
-    ):
+    with patch.object(_food_service.client, "get_product",
+                      new=AsyncMock(return_value=MOCK_PRODUCT_PARTIAL_RAW)):
         yield
 
 @pytest.fixture
