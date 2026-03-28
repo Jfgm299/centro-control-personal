@@ -103,6 +103,12 @@ async def startup_event():
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Error iniciando gym scheduler: {e}")
+    try:
+        from app.modules.macro_tracker import start_macro_scheduler
+        start_macro_scheduler()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error iniciando macro scheduler: {e}")
 
 
 # ── Endpoints base ────────────────────────────────────────────────────────────

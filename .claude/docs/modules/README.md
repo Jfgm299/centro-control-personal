@@ -4,7 +4,7 @@
 |--------|--------|--------|------------------------|
 | `gym_tracker` | `gym_tracker` | ✅ Production | ✅ |
 | `expenses_tracker` | `expenses_tracker` | ✅ Production | ✅ |
-| `macro_tracker` | `macro_tracker` | ✅ Production | ❌ |
+| `macro_tracker` | `macro_tracker` | ✅ Production | ✅ |
 | `flights_tracker` | `flights_tracker` | ✅ Production | ✅ |
 | `travels_tracker` | `travels_tracker` | ✅ Production | ❌ |
 | `calendar_tracker` | `calendar_tracker` | ✅ Production | ✅ (reference implementation) |
