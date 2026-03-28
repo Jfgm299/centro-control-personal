@@ -1,6 +1,6 @@
 ---
 allowed-tools: Bash(git diff:*), Bash(git log:*), Read, Edit, Write, Glob
-description: Analyze recent changes and update documentation in `.claude/docs/`
+description: Analyze recent changes and update documentation in `.agents/docs/`
 ---
 
 ## Context
@@ -10,9 +10,9 @@ description: Analyze recent changes and update documentation in `.claude/docs/`
 
 ## Task
 
-Analyze the changed files above and update the relevant docs in `.claude/docs/` to reflect the current state of the code.
+Analyze the changed files above and update the relevant docs in `.agents/docs/` to reflect the current state of the code.
 
-## Mapping: changed file -> doc to update
+## Mapping: changed file → doc to update
 
 | If this changed... | Update... |
 |---|---|
@@ -20,7 +20,7 @@ Analyze the changed files above and update the relevant docs in `.claude/docs/` 
 | `app/modules/<mod>/routers/` | `docs/modules/<mod>.md` — Endpoints section |
 | `app/modules/<mod>/manifest.py` | `docs/modules/<mod>.md` and `docs/module-system.md` if contract changed |
 | `app/modules/<mod>/automation_registry.py` | `docs/modules/<mod>.md` — Automation Contract section |
-| `app/modules/<mod>/services/` | `docs/modules/<mod>.md` — Services section |
+| `app/modules/<mod>/services/` | `docs/modules/<mod>.md` — relevant service section |
 | `app/core/module_loader.py` | `docs/architecture.md` and `docs/module-system.md` |
 | `app/main.py` | `docs/architecture.md` — Startup Sequence |
 | `alembic/versions/` | `docs/database.md` if it introduces new patterns |
@@ -30,10 +30,5 @@ Analyze the changed files above and update the relevant docs in `.claude/docs/` 
 
 1. Read the changed files to understand exactly what changed (not just file names)
 2. Cross-reference with the mapping above to determine which docs need updates
-3. Edit only the affected sections — do not rewrite sections that didn't change
+3. Edit only the affected sections — do not rewrite sections that did not change
 4. Confirm which files were updated and what changed in each
-
-## Backend-affecting changes
-
-If the change affects the backend-frontend interface (new/modified endpoints, response schema changes, new modules), also update:
-- `shared-context.md` in the frontend repo (`centro-control-app/.claude/docs/shared-context.md`) if it exists
