@@ -331,7 +331,7 @@ class TestAutoConvert:
         assert converted[0]["quantity"] == 89.0
 
     def test_past_one_time_becomes_inactive(self, auth_client):
-        """El ONE_TIME convertido debe quedar is_active=False."""
+        """El ONE_TIME convertido debe desaparecer de la lista (is_active=False → filtrado)."""
         yesterday = str(date.today() - timedelta(days=1))
         r = auth_client.post(BASE, json=one_time_payload(
             name="Hotel Paris",
@@ -342,9 +342,8 @@ class TestAutoConvert:
         auth_client.get(BASE)  # trigger auto-convert
 
         scheduled = auth_client.get(BASE).json()
-        item = next((s for s in scheduled if s["id"] == item_id), None)
-        assert item is not None
-        assert item["is_active"] is False
+        ids = [s["id"] for s in scheduled]
+        assert item_id not in ids
 
     def test_past_one_time_not_converted_twice(self, auth_client):
         """Llamar GET dos veces no debe crear dos Expenses."""
@@ -391,19 +390,32 @@ class TestAutoConvert:
         converted = [e for e in expenses if e["name"] == "Pago hoy"]
         assert len(converted) == 1
 
-    def test_subscription_past_date_not_converted(self, auth_client):
-        """Una SUBSCRIPTION con fecha pasada NO debe convertirse en Expense."""
+    def test_subscription_past_date_is_converted_and_advanced(self, auth_client):
+        """Una SUBSCRIPTION con fecha pasada debe convertirse en Expense y avanzar su fecha."""
+        from dateutil.relativedelta import relativedelta
         yesterday = str(date.today() - timedelta(days=1))
-        auth_client.post(BASE, json=subscription_payload(
-            name="Netflix viejo",
+        
+        r = auth_client.post(BASE, json=subscription_payload(
+            name="Netflix recurrente",
             next_payment_date=yesterday,
+            frequency="MONTHLY"
         ))
+        sub_id = r.json()["id"]
 
+        # Trigger conversion
         auth_client.get(BASE)
 
+        # Check expense was created
         expenses = auth_client.get("/api/v1/expenses/").json()
-        converted = [e for e in expenses if e["name"] == "Netflix viejo"]
-        assert len(converted) == 0
+        converted = [e for e in expenses if e["name"] == "Netflix recurrente"]
+        assert len(converted) == 1
+        
+        # Check subscription date was advanced
+        subs = auth_client.get(BASE).json()
+        updated_sub = [s for s in subs if s["id"] == sub_id][0]
+        expected_next = date.today() - timedelta(days=1) + relativedelta(months=1)
+        assert updated_sub["next_payment_date"] == str(expected_next)
+        assert updated_sub["is_active"] is True
 
     def test_inactive_one_time_not_converted(self, auth_client):
         """Un ONE_TIME inactivo con fecha pasada NO debe convertirse."""

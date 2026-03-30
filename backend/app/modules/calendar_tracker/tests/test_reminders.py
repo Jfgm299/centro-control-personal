@@ -97,6 +97,34 @@ class TestUpdateReminder:
             "/api/v1/calendar/reminders/99999", json={"title": "X"}
         ).status_code == 404
 
+    def test_update_status_to_done(self, auth_client, reminder_id):
+        response = auth_client.patch(
+            f"/api/v1/calendar/reminders/{reminder_id}",
+            json={"status": "done"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "done"
+
+    def test_update_status_to_pending(self, auth_client, reminder_id):
+        auth_client.patch(f"/api/v1/calendar/reminders/{reminder_id}", json={"status": "done"})
+        response = auth_client.patch(
+            f"/api/v1/calendar/reminders/{reminder_id}",
+            json={"status": "pending"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "pending"
+
+    def test_update_status_invalid_fails(self, auth_client, reminder_id):
+        assert auth_client.patch(
+            f"/api/v1/calendar/reminders/{reminder_id}",
+            json={"status": "completed"},
+        ).status_code == 422
+
+    def test_done_reminder_excluded_from_pending_filter(self, auth_client, reminder_id):
+        auth_client.patch(f"/api/v1/calendar/reminders/{reminder_id}", json={"status": "done"})
+        ids = [r["id"] for r in auth_client.get("/api/v1/calendar/reminders?status=pending").json()]
+        assert reminder_id not in ids
+
 
 class TestDeleteReminder:
 

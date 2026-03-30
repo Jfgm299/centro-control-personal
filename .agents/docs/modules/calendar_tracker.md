@@ -89,6 +89,12 @@ integrations/
 | `calendar_tracker.get_todays_schedule` | Devuelve eventos del día en el contexto |
 | `calendar_tracker.bulk_mark_overdue_done` | Marca en bloque recordatorios vencidos |
 
+### Return Value Convention
+
+Todos los action handlers siguen estrictamente el contrato `done: True/False`:
+- Acciones de creación devuelven `{"created": True, ...}` (variante aceptada del contrato)
+- Acciones de modificación/consulta devuelven `{"done": True, ...}` o `{"done": False, "reason": "..."}` en caso de fallo (ej: entidad no encontrada, ID faltante)
+
 ### Dispatcher
 
 `automation_dispatcher.py` contiene `CalendarAutomationDispatcher` — conecta los eventos del scheduler con el motor de automatizaciones. Es llamado por `scheduler_service.py` cuando ocurren eventos relevantes.

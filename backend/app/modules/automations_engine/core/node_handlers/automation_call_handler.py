@@ -8,7 +8,7 @@ def execute(node_config: dict, ctx: dict, db, user_id: int) -> dict[str, Any]:
     automation_id = node_config.get("automation_id")
     current_depth = ctx.get("_depth", 0)
 
-    if current_depth >= MAX_DEPTH:
+    if current_depth + 1 > MAX_DEPTH:
         raise FlowDepthExceededError(MAX_DEPTH)
 
     # Import aquí para evitar circular imports

@@ -74,6 +74,43 @@ for module_name, module in loaded_modules:
 
 print(f"\n✅ {len(loaded_modules)} módulos cargados\n")
 
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    Arranca schedulers que necesitan esperar a que la app esté completamente
+    inicializada (modelos, relaciones y mappers ya configurados).
+    """
+    from app.modules.automations_engine.services.cron_scheduler_service import start_cron_scheduler
+    from app.modules.calendar_tracker import start_calendar_scheduler
+    from app.modules.expenses_tracker import start_expenses_scheduler
+    from app.modules.flights_tracker import start_flights_scheduler
+    start_cron_scheduler()
+    start_calendar_scheduler()
+    try:
+        start_expenses_scheduler()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error iniciando expenses scheduler: {e}")
+    try:
+        start_flights_scheduler()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error iniciando flights scheduler: {e}")
+    try:
+        from app.modules.gym_tracker.scheduler_service import start_gym_scheduler
+        start_gym_scheduler()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error iniciando gym scheduler: {e}")
+    try:
+        from app.modules.macro_tracker import start_macro_scheduler
+        start_macro_scheduler()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error iniciando macro scheduler: {e}")
+
+
 # ── Endpoints base ────────────────────────────────────────────────────────────
 @app.get("/")
 def root():

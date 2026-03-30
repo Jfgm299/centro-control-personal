@@ -55,7 +55,11 @@ def inbound_webhook(
     execution  = execution_service.create(automation.id, webhook.user_id, trigger_payload, db)
     execution  = execution_service.mark_running(execution, db)
 
-    result = flow_executor.execute(automation, trigger_payload, db, webhook.user_id)
+    try:
+        result = flow_executor.execute(automation, trigger_payload, db, webhook.user_id)
+    except Exception as e:
+        execution = execution_service.mark_failed(execution, str(e), [], db)
+        return {"execution_id": execution.id, "status": execution.status}
 
     if result["status"] == "success":
         execution = execution_service.mark_success(execution, result["node_logs"], db)

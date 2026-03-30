@@ -3,6 +3,12 @@ import re
 from typing import Any
 
 
+def handle(payload: dict, config: dict, db, user_id: int) -> dict:
+    """Adapter para ser llamado desde action_handler vía registry."""
+    ctx = {"payload": payload, "vars": {}, "_depth": 0, "user_id": user_id}
+    return execute(config, ctx, db, user_id)
+
+
 def execute(node_config: dict, ctx: dict, db, user_id: int) -> dict[str, Any]:
     url     = node_config.get("url")
     method  = node_config.get("method", "POST").upper()
@@ -31,10 +37,25 @@ def execute(node_config: dict, ctx: dict, db, user_id: int) -> dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
+def _resolve_path(data: dict, path: str) -> Any:
+    parts = path.split(".")
+    val = data
+    for part in parts:
+        if isinstance(val, dict):
+            val = val.get(part)
+        else:
+            return None
+    return val
+
+
 def _resolve_template(template: Any, ctx: dict) -> Any:
     flat = {**ctx.get("payload", {}), **ctx.get("vars", {})}
     if isinstance(template, str):
-        return re.sub(r"\{\{\s*([\w.]+)\s*\}\}", lambda m: str(flat.get(m.group(1), "")), template)
+        return re.sub(
+            r"\{\{\s*([\w.]+)\s*\}\}",
+            lambda m: str(_resolve_path(flat, m.group(1)) or ""),
+            template,
+        )
     if isinstance(template, dict):
         return {k: _resolve_template(v, ctx) for k, v in template.items()}
     if isinstance(template, list):

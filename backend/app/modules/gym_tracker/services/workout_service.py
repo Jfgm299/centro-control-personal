@@ -1,3 +1,4 @@
+import logging
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime, timezone
@@ -6,6 +7,8 @@ from ..models.workout_muscle_group import WorkoutMuscleGroup
 from ..schemas import WorkoutCreate, WorkoutEnd, WorkoutDetailResponse
 from ..schemas import ExerciseDetailResponse, SetResponse
 from ..exceptions import WorkoutAlreadyEndedError, WorkoutNotFoundError, WorkoutAlreadyActiveError
+
+logger = logging.getLogger(__name__)
 
 
 class WorkoutService:
@@ -34,6 +37,16 @@ class WorkoutService:
         db.add(workout)
         db.commit()
         db.refresh(workout)
+        try:
+            from ..automation_dispatcher import dispatcher
+            dispatcher.on_workout_started(
+                workout_id=workout.id,
+                started_at=workout.started_at.isoformat() if workout.started_at else "",
+                user_id=user_id,
+                db=db,
+            )
+        except Exception as e:
+            logger.warning(f"gym dispatcher.on_workout_started failed: {e}")
         return self._workout_to_dict(workout)
 
     def end_workout(self, db: Session, workout_id: int, data: WorkoutEnd, user_id: int) -> dict:
@@ -75,6 +88,19 @@ class WorkoutService:
 
         db.commit()
         db.refresh(workout)
+        try:
+            from ..automation_dispatcher import dispatcher
+            dispatcher.on_workout_ended(
+                workout_id=workout.id,
+                duration_minutes=workout.duration_minutes,
+                total_exercises=workout.total_exercises or 0,
+                total_sets=workout.total_sets or 0,
+                muscle_groups=[mg.muscle_group.value for mg in workout.muscle_groups],
+                user_id=user_id,
+                db=db,
+            )
+        except Exception as e:
+            logger.warning(f"gym dispatcher.on_workout_ended failed: {e}")
         return self._workout_to_dict(workout)
 
     def get_by_id(self, db: Session, workout_id: int, user_id: int) -> dict:
