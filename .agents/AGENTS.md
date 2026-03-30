@@ -22,17 +22,53 @@ FastAPI · SQLAlchemy · Pydantic v2 · PostgreSQL (multi-schema) · Alembic · 
 `.agents/` is the single source of truth for all AI agent config.
 `.claude/` and `.opencode/` reference it via symlinks — never create config files directly in those directories.
 
-| Type | Location |
-|------|----------|
-| Commands | `.agents/commands/<name>.md` |
-| Docs | `.agents/docs/<name>.md` |
-| Skills | `.agents/skills/<name>/SKILL.md` |
+### Current symlink map
 
-After creating a file in `.agents/`, add symlinks from the tool directories if needed:
-```bash
-ln -s ../.agents/<path> .claude/<path>
-ln -s ../.agents/<path> .opencode/<path>
+| `.agents/` path | `.claude/` symlink | `.opencode/` symlink | Type |
+|----------------|-------------------|---------------------|------|
+| `AGENTS.md` | `CLAUDE.md` → `../.agents/AGENTS.md` | `AGENTS.md` → `../.agents/AGENTS.md` | file |
+| `commands/` | `commands` → `../.agents/commands` | `commands` → `../.agents/commands` | **directory** |
+| `docs/` | `docs` → `../.agents/docs` | `docs` → `../.agents/docs` | **directory** |
+| `dev/` | — (not exposed, accessed by path) | — | none |
+| `skills/` | — (not yet symlinked) | — | none |
+
+### Rules for adding new content
+
+**File inside an already-symlinked directory** (`commands/`, `docs/`) → **No extra work needed.**
+The directory symlink covers all files inside it automatically.
+
 ```
+# Example: adding a new command
+touch .agents/commands/new-command.md
+# → automatically available as .claude/commands/new-command.md and .opencode/commands/new-command.md
+# → no symlinks required
+```
+
+**New directory under `.agents/`** → **Add directory symlinks from both tool dirs.**
+
+```bash
+# Example: adding a new top-level directory
+mkdir .agents/new-dir/
+ln -s ../.agents/new-dir .claude/new-dir
+ln -s ../.agents/new-dir .opencode/new-dir
+# Then register it in this table above
+```
+
+**New file at `.agents/` root** → **Add individual file symlinks.**
+
+```bash
+ln -s ../.agents/new-file.md .claude/new-file.md
+ln -s ../.agents/new-file.md .opencode/new-file.md
+```
+
+### File locations
+
+| Type | Location | Needs symlinks? |
+|------|----------|----------------|
+| Commands | `.agents/commands/<name>.md` | No — `commands/` dir already symlinked |
+| Docs | `.agents/docs/<name>.md` | No — `docs/` dir already symlinked |
+| Skills | `.agents/skills/<name>/SKILL.md` | No — skills accessed by path from AGENTS.md |
+| PRDs | `.agents/dev/prd-<feature-name>.md` | No — accessed by path, not via tool dirs |
 
 ---
 
@@ -69,6 +105,7 @@ Load docs **on demand only** — do NOT pre-load all files at startup. Read a do
 | `/new-module` | `@commands/new-module.md` | Scaffold a new backend module |
 | `/update-docs` | `@commands/update-docs.md` | Update .agents/docs/ after code changes |
 | `/prompt` | `@commands/prompt.md` | Optimize a prompt for AI agents |
+| `/new-prd` | `@commands/new-prd.md` | Create a PRD — mandatory first step before any substantial feature |
 
 ---
 
