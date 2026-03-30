@@ -17,6 +17,23 @@ FastAPI · SQLAlchemy · Pydantic v2 · PostgreSQL (multi-schema) · Alembic · 
 - Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `perf:`, `style:`, `build:`, `ci:`, `revert:`
 - Never commit directly to `main` or `develop`
 
+## Config Structure
+
+`.agents/` is the single source of truth for all AI agent config.
+`.claude/` and `.opencode/` reference it via symlinks — never create config files directly in those directories.
+
+| Type | Location |
+|------|----------|
+| Commands | `.agents/commands/<name>.md` |
+| Docs | `.agents/docs/<name>.md` |
+| Skills | `.agents/skills/<name>/SKILL.md` |
+
+After creating a file in `.agents/`, add symlinks from the tool directories if needed:
+```bash
+ln -s ../.agents/<path> .claude/<path>
+ln -s ../.agents/<path> .opencode/<path>
+```
+
 ---
 
 ## Documentation
